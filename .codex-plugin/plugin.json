@@ -1,56 +1,56 @@
 {
-    "name":  "monaiq",
-    "version":  "2.0.0",
-    "description":  "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
-    "author":  {
-                   "name":  "Sidub Inc.",
-                   "url":  "https://monaiq.com"
-               },
-    "homepage":  "https://docs.monaiq.com",
-    "repository":  "https://github.com/Sidub-Inc/Sidub.Licensing",
-    "license":  "MIT",
-    "keywords":  [
-                     "licensing",
-                     "monetization",
-                     "saas",
-                     "sdk",
-                     "subscription",
-                     "feature-flags",
-                     "entitlements",
-                     "pricing-tiers",
-                     "trial",
-                     "paywall",
-                     "rate-limit",
-                     "dotnet",
-                     "react",
-                     "stripe",
-                     "licensing-as-a-service"
-                 ],
-    "skills":  "./skills/",
-    "mcpServers":  "./.mcp.json",
-    "interface":  {
-                      "displayName":  "Monaiq",
-                      "shortDescription":  "Add licensing, subscriptions, and feature gates to your .NET or React app",
-                      "longDescription":  "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
-                      "developerName":  "Sidub Inc.",
-                      "category":  "Productivity",
-                      "capabilities":  [
-                                           "Read",
-                                           "Write",
-                                           "Edit",
-                                           "Shell",
-                                           "Search",
-                                           "Web",
-                                           "MCP",
-                                           "Subagents"
-                                       ],
-                      "websiteURL":  "https://monaiq.com",
-                      "privacyPolicyURL":  "https://monaiq.com/privacy",
-                      "termsOfServiceURL":  "https://monaiq.com/terms",
-                      "brandColor":  "#6366F1",
-                      "defaultPrompt":  [
-                                            "Use Monaiq to add licensing to my .NET app.",
-                                            "Use Monaiq to design a pricing tier for my SaaS product."
-                                        ]
-                  }
+  "name": "monaiq",
+  "version": "1.5.18",
+  "description": "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
+  "author": {
+    "name": "Sidub Inc.",
+    "url": "https://monaiq.com"
+  },
+  "homepage": "https://docs.monaiq.com",
+  "repository": "https://github.com/Sidub-Inc/Sidub.Licensing",
+  "license": "MIT",
+  "keywords": [
+    "licensing",
+    "monetization",
+    "saas",
+    "sdk",
+    "subscription",
+    "feature-flags",
+    "entitlements",
+    "pricing-tiers",
+    "trial",
+    "paywall",
+    "rate-limit",
+    "dotnet",
+    "react",
+    "stripe",
+    "licensing-as-a-service"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Monaiq",
+    "shortDescription": "Add licensing, subscriptions, and feature gates to your .NET or React app",
+    "longDescription": "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
+    "developerName": "Sidub Inc.",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Edit",
+      "Shell",
+      "Search",
+      "Web",
+      "MCP",
+      "Subagents"
+    ],
+    "websiteURL": "https://monaiq.com",
+    "privacyPolicyURL": "https://monaiq.com/privacy",
+    "termsOfServiceURL": "https://monaiq.com/terms",
+    "brandColor": "#6366F1",
+    "defaultPrompt": [
+      "Use Monaiq to add licensing to my .NET app.",
+      "Use Monaiq to design a pricing tier for my SaaS product."
+    ]
+  }
 }

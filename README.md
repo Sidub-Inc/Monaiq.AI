@@ -5,7 +5,7 @@ Add licensing, subscriptions, and feature gates to your .NET or React app - AI-g
 > This repository is **generated** from [`https://github.com/Sidub-Inc/Sidub.Licensing`](https://github.com/Sidub-Inc/Sidub.Licensing) by `assemble-plugin.ps1` and
 > published by the "Publish AI" workflow. Do not edit it by hand - changes are overwritten on the next release.
 
-Version: `2.0.0` | License: MIT | Homepage: https://docs.monaiq.com
+Version: `1.5.18` | License: MIT | Homepage: https://docs.monaiq.com
 
 ## Install
 

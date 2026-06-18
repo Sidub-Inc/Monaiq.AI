@@ -1,8 +1,8 @@
 {
-    "mcpServers":  {
-                       "monaiq":  {
-                                      "type":  "http",
-                                      "url":  "https://api.monaiq.com/runtime/webhooks/mcp"
-                                  }
-                   }
+  "mcpServers": {
+    "monaiq": {
+      "url": "https://api.monaiq.com/runtime/webhooks/mcp",
+      "type": "http"
+    }
+  }
 }
