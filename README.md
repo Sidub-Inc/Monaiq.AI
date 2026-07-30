@@ -1,32 +1,13 @@
-# Monaiq
+# monaiq
 
-**Add licensing, subscriptions, and feature gates to your .NET or React app - guided step by step, right inside your AI coding assistant.**
+Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.
 
-Monaiq turns "I need to charge for this" into working code. Ask your assistant to set up licensing and the Monaiq plugin walks it through pricing design, catalog setup, SDK integration, checkout, and feature gating - using your real product catalog and credentials instead of boilerplate guesses.
+> This repository is **generated** from [`https://github.com/Sidub-Inc/Sidub.Licensing`](https://github.com/Sidub-Inc/Sidub.Licensing) by `assemble-plugin.ps1` and
+> published by the "Publish AI" workflow. Do not edit it by hand - changes are overwritten on the next release.
 
-Works with **Claude Code**, **GitHub Copilot** (VS Code), and **Codex CLI**.
+Version: `1.5.48` | License: MIT | Homepage: https://docs.monaiq.com
 
-## What you can do
-
-Once it's installed, just ask in plain language. For example:
-
-- "Use Monaiq to add licensing to my .NET app."
-- "Design a pricing tier for my SaaS product."
-- "Add a buy button and Stripe checkout to my React app."
-- "Gate this feature behind the Pro plan."
-- "Set up a free trial with usage limits."
-
-Monaiq handles the licensing domain so you can stay focused on your product:
-
-- **Pricing and packaging** - design tiers, trials, and usage-based plans
-- **Catalog management** - products, features, and offerings
-- **SDK integration** - install and wire up the licensing SDK for .NET or React
-- **Purchase flows** - embedded in-app checkout, or a no-code public storefront
-- **Feature gating** - entitlement checks, rate limits, and paywalls
-
-## Getting started
-
-You'll need a Monaiq account to issue and manage licenses - create one at [monaiq.com](https://monaiq.com). The plugin guides you through connecting it the first time you use it.
+## Install
 
 ### Claude Code
 ```
@@ -34,26 +15,17 @@ You'll need a Monaiq account to issue and manage licenses - create one at [monai
 /plugin install monaiq@monaiq
 ```
 
-### GitHub Copilot (VS Code)
-Add this repository (`Sidub-Inc/Monaiq.AI`) as an agent plugin source. See the [Copilot agent plugins guide](https://code.visualstudio.com/docs/copilot/customization/agent-plugins).
+### VS Code / GitHub Copilot
+Add the plugin from this repository (`Sidub-Inc/Monaiq.AI`) - Copilot discovers `plugin.json` at the repo root.
 
 ### Codex CLI
-Add this repository (`Sidub-Inc/Monaiq.AI`) as a plugin. See the [Codex documentation](https://developers.openai.com/codex).
+Add the plugin from this repository (`Sidub-Inc/Monaiq.AI`) - Codex discovers `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`.
 
-## How it works
+## What's inside
 
-Monaiq runs as a plugin in your AI coding assistant and connects to the hosted Monaiq service that manages your products, offerings, licenses, and checkout. Your assistant receives step-by-step, framework-aware guidance, so the code it writes matches the current SDK and your live catalog.
+- `skills/` - auto-invocable skills (12 total)
+- `agents/` - the `monaiq` agent (Claude + Copilot)
+- `.mcp.json` - MCP server config (all platforms); server endpoint `https://api.monaiq.com/runtime/webhooks/mcp`
+- platform manifests: `plugin.json` (Copilot), `.claude-plugin/` (Claude), `.codex-plugin/` + `.agents/` (Codex)
 
-## Documentation and support
-
-- Documentation: https://docs.monaiq.com
-- Website: https://monaiq.com
-- Questions or feedback: [open an issue](https://github.com/Sidub-Inc/Monaiq.AI/issues)
-
-## License
-
-MIT - Copyright (c) Sidub Inc.
-
----
-
-_This is the official distribution of the Monaiq plugin and is updated automatically with each release. For help or to request a change, please open an issue rather than editing files here._
+The MCP server is hosted at `https://api.monaiq.com/runtime/webhooks/mcp` and is shared by every platform manifest.
