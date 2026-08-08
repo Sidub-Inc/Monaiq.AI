@@ -15,7 +15,6 @@ skills:
   - profile-onboarding
   - maintain-implementation-journal
 tools:
-  - register_or_login
   - getting_started
   - profile
   - product
@@ -27,7 +26,6 @@ tools:
   - implement_purchase_flow
   - fetch_step_resources
   - monaiq_journal
-  - mcp__plugin_monaiq_monaiq__register_or_login
   - mcp__plugin_monaiq_monaiq__getting_started
   - mcp__plugin_monaiq_monaiq__profile
   - mcp__plugin_monaiq_monaiq__product
@@ -103,7 +101,7 @@ The unified agent's tool authority is scoped by current phase, not by global all
 
 | Phase | Read-allowed | Mutation-allowed (after the named checkpoint) |
 |---|---|---|
-| `Onboarding` | `register_or_login`, `getting_started`, `profile`, `monaiq_journal`, `fetch_step_resources` | `profile` profile-directed updates after `CHECKPOINT-PRE-TERMS-ACCEPTANCE` |
+| `Onboarding` | `getting_started`, `profile`, `monaiq_journal`, `fetch_step_resources` | `profile` profile-directed updates after `CHECKPOINT-PRE-TERMS-ACCEPTANCE` |
 | `Discovery` | all catalog reads, `analyze-codebase` workspace reads, `fetch_step_resources` | none — Discovery is read-only by contract |
 | `Catalog` | all catalog reads | `product`, `product_feature`, `offering`, `feature_offering` after `CHECKPOINT-PRE-CATALOG-MUTATION` |
 | `SDK` | `implement_base` reads, workspace reads | workspace edits + `provision_api_key_config` after `CHECKPOINT-FRAMEWORK-CHOICE` and `CHECKPOINT-PRE-CREDENTIAL-WRITE` |
@@ -137,7 +135,6 @@ Full access to all MCP tools:
 
 | Category | Tools | Purpose |
 |----------|-------|---------|
-| **session** | `register_or_login` | Authentication and session establishment |
 | **onboarding** | `getting_started`, `profile` | First-time setup, onboarding checklist, credential retrieval |
 | **catalog** | `product`, `product_feature`, `offering`, `feature_offering` | Product catalog management — CRUD operations |
 | **integration** | `implement_base`, `implement_product_feature`, `implement_purchase_flow`, `fetch_step_resources`, `monaiq_journal` | SDK integration guidance, workflow resource fetches, and implementation journal projections |
@@ -242,7 +239,7 @@ Each skill has a bounded responsibility; when a request crosses a boundary, rout
 
 <constraints>
 1. **Pre-action confirmation gate:** When operating in Discovery mode, if a create/update/delete tool call is about to be made (product create, feature create, offering create, feature_offering create/update/delete), you MUST ask the user for confirmation before proceeding. Phrase: "I'm currently in Discovery mode. This action will modify your catalog. Proceed?" If user confirms, proceed with the action (no mode switch needed).
-2. **Session-first:** Always ensure a session is established via `register_or_login` before catalog or integration operations.
+2. **Signed-in-first:** Authentication is handled by the MCP client's OAuth flow (email one-time passcode). If a tool returns `AuthError`, prompt the user to complete the client's sign-in, then retry — never ask for or pass a credential yourself.
 3. **FeatureKey consistency:** FeatureKey strings must match exactly across product_feature and feature_offering operations.
 4. **Polymorphic type matching:** Access features use ServiceAccessFeatureOffering; RateLimit features use RateLimitFeatureOffering.
 5. **Credential security:** Never persist ApiKey to disk or expose in frontend code.

@@ -9,7 +9,7 @@ auto-invoke:
   - "User asks 'where do I start' or 'how do I begin' with licensing"
 tags: [onboarding, getting-started, orchestration, state-detection]
 category: onboarding
-allowed-tools: [register_or_login, getting_started, profile, product, offering, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__register_or_login, mcp__plugin_monaiq_monaiq__getting_started, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
+allowed-tools: [getting_started, profile, product, offering, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__getting_started, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
 tier: 1
 invoked-by: [user]
 ---
@@ -117,14 +117,15 @@ Present route recommendations in business-readable language first: what the user
 <reference>
 ## Authentication & User Detection
 
-Call the `register_or_login` tool to authenticate and establish a session.
+Authentication is handled by the MCP client's OAuth flow (MCP authorization spec): on first
+use the client prompts the user to sign in with an email one-time passcode, and the account
+is created automatically on first sign-in. No credential is ever passed to tools.
 
-**If the tool indicates no existing account — this is a NEW user:**
-- Guide through registration: "Provide your email to create a Monaiq account."
-- After registration completes, proceed to Step 2.
+**If a tool returns `AuthError`:**
+- Ask the user to complete their MCP client's sign-in prompt, then retry.
 
-**If login succeeds — this is a RETURNING user:**
-- Proceed to Step 2 with returning-user context.
+**Once signed in:**
+- Proceed to Step 2. A brand-new account simply has an empty catalog and a `NotStarted` profile.
 
 ## State Detection
 
@@ -215,7 +216,7 @@ Use the Intent Dispatch Table in `ROUTING-MAP.md` before showing this fallback. 
 </reference>
 
 <success_criteria>
-- Session is established via `register_or_login` with new/returning user detection
+- The user is signed in through their MCP client's OAuth flow (AuthError responses route to the client's sign-in prompt)
 - State is detected by querying `getting_started`, `profile`, `product`, and `offering` tools
 - User is classified into the correct scenario (Greenfield, Brownfield, or Returning)
 - User is routed to the correct next action based on their progress and intent

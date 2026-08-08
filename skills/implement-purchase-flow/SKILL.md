@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks how to embed a buy button or purchase flow"
 tags: [sdk, checkout, purchase, licensing, stripe]
 category: integration
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, register_or_login, profile, offering, feature_offering, implement_purchase_flow, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__register_or_login, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_purchase_flow, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, offering, feature_offering, implement_purchase_flow, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_purchase_flow, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 argument-hint: "platform (dotnet|dotnet/blazor-server|react|react/vite|react/nextjs)"
 tier: 3
 invoked-by: [implement-licensing, manage-catalog]

@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks how to set up Monaiq licensing in code — not asking about pricing or catalog design"
 tags: [sdk, integration, licensing, setup, dotnet, react]
 category: integration
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, register_or_login, profile, product, product_feature, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__register_or_login, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, product, product_feature, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 argument-hint: "platform (dotnet|dotnet/blazor-server|react|react/vite|react/nextjs)"
 tier: 2
 invoked-by: [getting-started]
@@ -82,7 +82,7 @@ Before writing any code, determine how end-users will provide their license cred
 
 **Configuration-Based** — one license credential stored in application settings covers the entire application. The SDK's built-in configuration-based credential resolver handles this automatically. For the exact configuration shape and resolver type names, resolve `monaiq://platforms/api-surface/{platform}`.
 
-**User-Managed** — each user/tenant provides their own credential at runtime. You must implement a custom credential-provider type that resolves credentials from your storage (user profile, tenant settings, etc.). For the authoritative provider interface / hook signature, resolve `monaiq://platforms/api-surface/{platform}`. Consider the `implement_purchase_flow` tool for embedded in-app purchases that provision credentials automatically. If you do not build an embedded purchase flow (e.g. a non-web/desktop/CLI app), end-users can self-serve at the reseller's public storefront `{portalUri}/marketplace/{IssuerClientId}` and paste the returned credential — no registration, email-only checkout (resolve `portalUri` from `monaiq://config/endpoints`).
+**User-Managed** — each user/tenant provides their own credential at runtime. You must implement a custom credential-provider type that resolves credentials from your storage (user profile, tenant settings, etc.). For the authoritative provider interface / hook signature, resolve `monaiq://platforms/api-surface/{platform}`. Consider the `implement_purchase_flow` tool for embedded in-app purchases that provision credentials automatically. If you do not build an embedded purchase flow (e.g. a non-web/desktop/CLI app), end-users can self-serve at the reseller's public storefront `{portalUri}/marketplace/{IssuerClientId}` and paste the returned credential — self-serve storefront checkout, where the buyer verifies their email with a one-time code inline and there is no separate signup step (resolve `portalUri` from `monaiq://config/endpoints`).
 
 ## Step 2: Install Packages
 
@@ -181,7 +181,7 @@ After completing the integration:
 ## Related Tools
 
 - `implement_base` — Interactive step-by-step SDK integration (follows the same 6-area structure; call `startStep=1` through `startStep=6` consecutively).
-- `register_or_login` — Establish a session before integration.
+- OAuth sign-in — handled by the MCP client before integration (no tool call; retry after the user signs in when a tool returns `AuthError`).
 - `profile` — Retrieve credentials and onboarding status.
 
 ## Related Resources
@@ -217,7 +217,7 @@ When state detection shows SDK is already integrated, offer these options:
 | Failure Point | Symptom | Recovery Action |
 |--------------|---------|----------------|
 | Package install fails | NuGet/npm error during SDK package installation | Check network connectivity and package source configuration. Retry with an explicit registry/source (`--source nuget.org` for .NET, clear npm cache for React). Resolve `monaiq://sdk/{stack}/setup` for the exact package name and commands. |
-| Credential retrieval fails | `profile` tool returns an error | Verify the session is active via `register_or_login`. Re-authenticate if the session expired. |
+| Credential retrieval fails | `profile` tool returns an error | On `AuthError`, ask the user to complete their MCP client's OAuth sign-in, then retry. |
 | Config binding fails | Licensing configuration exception at startup | Verify the configuration section name and key casing match the platform-specific configuration shape. Check that the credential field is not empty or malformed. Resolve `monaiq://sdk/{stack}/setup` for the authoritative configuration keys. |
 | DI registration fails | Build error on the SDK's registration extension or provider component | Verify the package is installed and the correct imports/usings are present. Resolve `monaiq://platforms/api-surface/{platform}` for the authoritative extension-method or component signatures. |
 | Authorization call returns null | License validation fails at runtime | Verify the purchased EncodedCredential is present in configuration or the application's credential store. Resolve `monaiq://config/endpoints` to confirm service URIs are correct for the target environment. Resolve `monaiq://platforms/pitfalls/{platform}` for platform-specific null-semantics differences. |

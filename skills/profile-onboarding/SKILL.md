@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks about their onboarding status or account details"
 tags: [profile, onboarding, credentials, terms]
 category: onboarding
-allowed-tools: [register_or_login, profile, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__register_or_login, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
+allowed-tools: [profile, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
 tier: 3
 invoked-by: [getting-started]
 ---
@@ -41,8 +41,8 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 
 <workflow>
 1. Run `_shared/workflows/startup.md` for `profile-onboarding`.
-2. **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **profile status + terms acceptance**. Evidence sources, in priority order: `register_or_login` session result, `profile` (`ProfileStatus`, `ResellerStatus`, `IssuerClientId`), prior journal decisions, route packet. The recommendation is the next forward action that unblocks catalog/checkout/implementation; the host-native question lets the user proceed, view terms/privacy, or pause.
-3. Establish a session with `register_or_login`, then call `profile` to detect `ProfileStatus`, `ResellerStatus`, and `IssuerClientId`.
+2. **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **profile status + terms acceptance**. Evidence sources, in priority order: `profile` (`ProfileStatus`, `ResellerStatus`, `IssuerClientId`), prior journal decisions, route packet. The recommendation is the next forward action that unblocks catalog/checkout/implementation; the host-native question lets the user proceed, view terms/privacy, or pause.
+3. Call `profile` to detect `ProfileStatus`, `ResellerStatus`, and `IssuerClientId`. (Authentication is handled by the MCP client's OAuth flow; on `AuthError`, ask the user to complete the sign-in prompt and retry.)
 3. Present status in business-readable terms: what the account can do now, what is blocked, and which next action unblocks catalog, checkout, or implementation work.
 4. Retrieve reseller credentials only when needed for catalog/checkout setup or explicitly requested. Never write raw `ApiKey`, `EncodedCredential`, `.env`, user-secrets, or secret-bearing values into prompts, `.monaiq`, summaries, docs, or generated plugin output.
 5. If the user wants to accept terms, stop at `CHECKPOINT-PRE-TERMS-ACCEPTANCE`, follow `_shared/workflows/checkpoint.md`, present the terms/privacy review state, record the user's approval result, then call `profile` step 4 only after approval.
@@ -122,7 +122,7 @@ To accept terms, call the `profile` tool directly with `startStep=4` and `data={
 
 ## Related Tools
 
-- `register_or_login` — Establish a session (prerequisite for all profile operations)
+- OAuth sign-in — handled by the MCP client (prerequisite for all profile operations; no tool call)
 - `profile` — The tool that executes each step of this workflow
 - `implement_base` — SDK integration (configures where purchased credentials are supplied at runtime)
 - `implement_purchase_flow` — Checkout integration (uses ApiKey and IssuerClientId from step 2)

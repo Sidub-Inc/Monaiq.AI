@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks how to define pricing tiers or feature assignments"
 tags: [catalog, products, features, offerings, orchestration]
 category: catalog
-allowed-tools: [register_or_login, profile, product, product_feature, offering, feature_offering, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__register_or_login, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [profile, product, product_feature, offering, feature_offering, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 tier: 2
 invoked-by: [getting-started]
 ---
@@ -125,7 +125,7 @@ When state detection shows everything already exists, offer these options:
 
 | Failure Point | Symptom | Recovery Action |
 |--------------|---------|----------------|
-| Product creation fails | Tool returns error on `product` create | Retry once. If persistent, check session is authenticated via `register_or_login`. |
+| Product creation fails | Tool returns error on `product` create | Retry once. On `AuthError`, ask the user to complete their MCP client's OAuth sign-in, then retry. |
 | Feature creation fails after product created | `product_feature` returns validation error | Product is safe — retry the feature creation with corrected input. List existing features first to avoid duplicates. |
 | Offering creation fails after features created | `offering` returns error | Product and features are safe. Retry offering creation. Check that LicenseClassification is valid (Trial, Subscription, or Perpetual). |
 | Feature assignment fails after offering created | `feature_offering` returns error | Offering exists but is incomplete. Retry assignment. Verify FeatureKey matches exactly and feature type matches assignment type (Access → ServiceAccessFeatureOffering, RateLimit → RateLimitFeatureOffering). |
