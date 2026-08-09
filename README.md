@@ -5,7 +5,7 @@ Add licensing, subscriptions, and feature gates to your .NET or React app - AI-g
 > This repository is **generated** from [`https://github.com/Sidub-Inc/Sidub.Licensing`](https://github.com/Sidub-Inc/Sidub.Licensing) by `assemble-plugin.ps1` and
 > published by the "Publish AI" workflow. Do not edit it by hand - changes are overwritten on the next release.
 
-Version: `1.5.85` | License: MIT | Homepage: https://docs.monaiq.com
+Version: `1.5.87` | License: MIT | Homepage: https://docs.monaiq.com
 
 ## Install
 
@@ -25,10 +25,10 @@ Add the plugin from this repository (`Sidub-Inc/Monaiq.AI`) - Codex discovers `.
 
 - `skills/` - auto-invocable skills (12 total)
 - `agents/` - the `monaiq` agent (Claude + Copilot)
-- `.mcp.json` - MCP server config (all platforms); server endpoint `https://api.monaiq.com/runtime/webhooks/mcp`
+- `.mcp.json` - MCP server config (all platforms); server endpoint `https://api.monaiq.com/mcp`
 - platform manifests: `plugin.json` (Copilot), `.claude-plugin/` (Claude), `.codex-plugin/` + `.agents/` (Codex)
 
-The MCP server is hosted at `https://api.monaiq.com/runtime/webhooks/mcp` and is shared by every platform manifest.
+The MCP server is hosted at `https://api.monaiq.com/mcp` and is shared by every platform manifest.
 
 ## Sign-in
 
