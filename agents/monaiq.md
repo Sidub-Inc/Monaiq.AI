@@ -26,6 +26,9 @@ tools:
   - implement_purchase_flow
   - fetch_step_resources
   - monaiq_journal
+  - rotate_api_key
+  - provision_api_key_config
+  - get_platform_manifest
   - mcp__plugin_monaiq_monaiq__getting_started
   - mcp__plugin_monaiq_monaiq__profile
   - mcp__plugin_monaiq_monaiq__product
@@ -37,6 +40,9 @@ tools:
   - mcp__plugin_monaiq_monaiq__implement_purchase_flow
   - mcp__plugin_monaiq_monaiq__fetch_step_resources
   - mcp__plugin_monaiq_monaiq__monaiq_journal
+  - mcp__plugin_monaiq_monaiq__rotate_api_key
+  - mcp__plugin_monaiq_monaiq__provision_api_key_config
+  - mcp__plugin_monaiq_monaiq__get_platform_manifest
   - Read
   - Write
   - Edit

@@ -71,7 +71,7 @@ Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` before any `product` / `product_fe
 Ask how the user wants to charge, or use `quickStartSpec.pricingChoice` if provided. When asking, invoke the **Host-Native Ask Pattern** (see `_shared/protocols.md` § Host-Native Ask Pattern) with the pricing options listed below as option labels. Block until the user responds.
 
 Present pricing options in plain language:
-- **"Free trial + paid subscription"** → Create a Trial offering (14 days, $0) + Subscription offering ($X/month)
+- **"Free trial + paid subscription"** → Create a Trial offering ($0) + Subscription offering ($X/month). A Trial offering runs for the platform trial length (7 days — `LicenseTerms.TrialLengthDays`), which is a platform constant: `ProductOffering` has no per-offering trial-length field, so do not promise the user a different number.
 - **"Just a subscription"** → Create a Subscription offering ($X/month)
 - **"One-time purchase"** → Create a Perpetual offering ($X one-time)
 - **"Free tier + paid tier"** → Create a free Subscription ($0/month) + paid Subscription ($X/month)
@@ -79,7 +79,7 @@ Present pricing options in plain language:
 
 For each pricing tier (called an Offering in Monaiq), apply smart defaults:
 - Currency: `USD`
-- Interval: 1 Month for Subscription, none for Perpetual, 14 days for Trial
+- Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window — every trial license is minted for the platform trial length (7 days — `LicenseTerms.TrialLengthDays`)
 - Status: `Draft` (safe default — user publishes when ready)
 
 [CONFIRM] Execute tool calls: `offering` (create for each tier) → `feature_offering` (assign features to each offering).

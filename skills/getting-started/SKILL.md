@@ -132,7 +132,7 @@ is created automatically on first sign-in. No credential is ever passed to tools
 Gather the user's current state by calling these tools in sequence:
 
 1. Call `getting_started` to get the onboarding checklist — shows which setup steps are complete.
-2. Call `profile` to get `ProfileStatus`, `ResellerStatus`, and `IssuerClientId`.
+2. Call `profile` to get `ProfileStatus`, `ResellerStatus`, `IssuerClientId`, and `platformPlan`.
 3. Call `product` with a list action to check for existing products.
 4. If products exist, call `offering` with a list action to check for existing offerings.
 
@@ -144,6 +144,9 @@ Build a state picture from the results:
 | `hasOfferings` | Offering list is non-empty |
 | `profileComplete` | ProfileStatus is "Completed" |
 | `resellerEnabled` | ResellerStatus is "Enabled" |
+| `canSell` | `platformPlan.hasStanding` is true — the account holds a Monaiq platform plan |
+
+`resellerEnabled` and `canSell` are different questions. The first says the account is a seller; the second says Monaiq will let a buyer's checkout complete for it. An account can be `resellerEnabled` with `platformPlan.standing` of `None` — catalog work, credentials, and SDK integration all proceed normally, and the unblock for selling is to send the user to `platformPlan.nextStep.url` (the `sellerWizardUri` in `monaiq://config/endpoints`), which states which plans are open. Never attempt to buy a plan through a tool; route to `profile-onboarding` when the user wants to understand their standing.
 
 ## Scenario Classification
 
