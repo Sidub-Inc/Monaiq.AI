@@ -2,10 +2,10 @@
 
 Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.
 
-> This repository is **generated** from [`https://github.com/Sidub-Inc/Sidub.Licensing`](https://github.com/Sidub-Inc/Sidub.Licensing) by `assemble-plugin.ps1` and
-> published by the "Publish AI" workflow. Do not edit it by hand - changes are overwritten on the next release.
+> This repository is the **published distribution** of the Monaiq AI plugin, assembled and
+> mirrored here by Sidub's release pipeline. Do not edit it by hand - changes are overwritten on the next release.
 
-Version: `1.6.7` | License: MIT | Homepage: https://docs.monaiq.com
+Version: `1.6.13` | License: MIT | Homepage: https://docs.monaiq.com
 
 ## Install
 

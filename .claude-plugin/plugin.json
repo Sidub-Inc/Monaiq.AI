@@ -1,13 +1,13 @@
 {
   "name": "monaiq",
-  "version": "1.6.7",
+  "version": "1.6.13",
   "description": "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
   "author": {
     "name": "Sidub Inc.",
     "url": "https://monaiq.com"
   },
   "homepage": "https://docs.monaiq.com",
-  "repository": "https://github.com/Sidub-Inc/Sidub.Licensing",
+  "repository": "https://github.com/Sidub-Inc/Monaiq.AI",
   "license": "MIT",
   "keywords": [
     "licensing",
