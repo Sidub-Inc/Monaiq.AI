@@ -204,7 +204,7 @@ After completing the integration:
 
 When state detection shows SDK is already integrated, offer these options:
 
-- **Credential recovery** — Re-read the completed checkout result or the application's credential store to recover the purchased EncodedCredential. The profile tool only returns reseller checkout credentials.
+- **Credential recovery** — Re-read the completed checkout result or the application's credential store to recover the purchased EncodedCredential. A credential belongs to a LICENSE, not to an account: the profile tool only returns reseller checkout credentials, and a credential that was never stored cannot be re-shown — it is displayed once at issue, so the owner issues a fresh one on their license page and revokes the old one.
 - **Update service URIs** — Modify licensing configuration to point to different environments (staging, production). Resolve `monaiq://config/endpoints` for the current authoritative URIs.
 - **Switch credential source** — Migrate from configuration-based to user-managed credentials (or vice versa). Involves implementing or removing a custom credential resolver; resolve `monaiq://sdk/{stack}/setup` for the migration narrative.
 - **Verify integration** — Run a quick health check: confirm packages are installed, configuration is present, DI is registered, and a test authorization call succeeds.
@@ -229,6 +229,8 @@ SDK integration steps are non-destructive — each step modifies source files th
 ## Brownfield Credential Contract
 
 Persist the EncodedCredential (brownfield) only after an ownership scope decision. Before storage advice or schema changes, stop at `CHECKPOINT-PRE-BROWNFIELD-MIGRATION` and choose one scope: app-wide configuration credential, tenant-level credential, or user-level credential. The selected scope determines where the application reads the credential, who can update it, and which privacy boundary applies.
+
+Store the whole `SIDUB_LIC_` string as one value. Do not split it into columns, do not decode the token inside it, and never embed an account API key in an application you distribute — the credential an app installs authorizes and meters ONE license and reaches nothing else, and cannot carry an account key at all.
 
 For existing apps, prefer additive nullable changes that preserve current reads and allow a null/unlicensed rollout state. Do not make existing users fail because a credential column, tenant setting, or config value is absent during rollout. Plan a separate backfill for existing customers, define rollback and recovery steps, and keep old code paths readable until the migration is verified.
 

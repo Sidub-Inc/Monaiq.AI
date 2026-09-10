@@ -118,12 +118,12 @@ Call the `profile` tool with `startStep=2` to retrieve reseller credentials used
 
 | Credential | Purpose | Where Used |
 |-----------|---------|------------|
-| `ApiKey` | Authenticates checkout API calls | `CreateCheckoutSession` and `GetCheckoutResult` API key parameter |
+| `ApiKey` | Authenticates SERVER-SIDE checkout API calls; it is the whole ACCOUNT, including what that account sells with | `CreateCheckoutSession` and `GetCheckoutResult` API key parameter |
 | `IssuerClientId` | Reseller identity for checkout requests | `CheckoutRequest.IssuerClientId` |
 
-EncodedCredential is not a reseller profile credential. It is produced after an offering is purchased and returned by checkout-result retrieval.
+EncodedCredential is not a reseller profile credential. It belongs to a LICENSE: it is produced when an offering is purchased and returned by checkout-result retrieval, or issued by the license's owner on their license page. It carries a license-scoped runtime token, so it authorizes and meters that one license and reaches nothing else — which is exactly why it, and never the `ApiKey`, is what a distributed application configures.
 
-**Security:** Do not persist the `ApiKey` to disk or commit it to source control. Use environment variables or a secrets manager for production deployments.
+**Security:** Do not persist the `ApiKey` to disk or commit it to source control. Use environment variables or a secrets manager for production deployments. Never ship it inside an application a buyer runs.
 Do not write raw `ApiKey`, `IssuerClientId` plus secret context, `EncodedCredential`, `.env`, or user-secret values into prompts, `.monaiq`, summaries, or generated plugin output.
 
 **How credentials connect to checkout setup:**

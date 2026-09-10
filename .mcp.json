@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "monaiq": {
-      "type": "http",
-      "url": "https://api.monaiq.com/mcp"
+      "url": "https://api.monaiq.com/mcp",
+      "type": "http"
     }
   }
 }

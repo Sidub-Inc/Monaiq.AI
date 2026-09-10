@@ -136,13 +136,20 @@ Fetch `monaiq://config/endpoints` via the MCP `resources/read` operation or `fet
 - `IssuerClientId` identifies your reseller account — obtained from the `profile` tool.
 - Use HTTPS for every success / cancel URL.
 
+**Key path, free offering, typed address:** the create response may carry a `ClaimUrl`. When it
+does, nothing has been provisioned yet — the address names the buyer but does not prove them.
+Surface the link to the person in front of you (the same link is emailed to the address) and keep
+polling: the result reads pending until the buyer signs in and accepts, then completed with the
+credential, or failed with `Claim expired.` once the seven-day window lapses. Do not add an
+"awaiting claim" status of your own; the status vocabulary is unchanged.
+
 ## Step 3: Success Handling
 
 After the user completes Stripe Checkout, retrieve the result using the session ID. The result exposes the checkout status, the `CorrelationId` you originally supplied, the license ID, and the encoded credential string.
 
 Persist the credential against the user identified by `CorrelationId` — this credential is what the licensing SDK uses at runtime.
 
-Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the reseller profile.
+Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the reseller profile. The value belongs to the license just bought: it carries a license-scoped runtime token, authorizes and meters that one license, and the buyer can revoke it from their license page. Store the whole string as issued — never split it, never decode the token inside it, never log it.
 
 For the platform-specific result type and retrieval call pattern:
 
