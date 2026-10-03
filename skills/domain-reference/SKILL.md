@@ -65,7 +65,7 @@ Fetch `monaiq://domain/model` via the MCP `resources/read` operation or `fetch_s
 **Key entities covered:**
 - Customer, Product, ProductFeature (polymorphic: Access/RateLimit)
 - ProductOffering, FeatureOffering (polymorphic: ServiceAccess/RateLimit)
-- License, LicenseFeature, BillingPlan
+- License, LicenseFeature, FeatureRate, Seat
 - KeyDescriptor, EncodedCredential
 
 ## Fetch Namespace Reference
@@ -84,8 +84,9 @@ Use the fetched resources as internal context to answer the user's specific doma
 |--------------|-------------|-----------------|
 | "What is a FeatureKey?" | ProductFeature, FeatureOffering, LicenseFeature | `FeatureKey` — the linking field across catalog and runtime |
 | "How do features work?" | ProductAccessFeature, ProductRateLimitFeature | Feature flags (Access) and usage limits (RateLimit) — polymorphic types with distinct assertion classes |
-| "What's the difference between offerings and licenses?" | ProductOffering, License | Pricing tier (Offering) = pricing template, License = issued entitlement |
-| "How does checkout connect to licensing?" | CheckoutRequest, License, EncodedCredential | CorrelationId flow, credential provisioning |
+| "What's the difference between offerings and licenses?" | ProductOffering, License | Pricing tier (Offering) = pricing template, License = the purchase issued from it |
+| "What's the difference between a license and a seat?" | License, Seat | License = the purchase (classification, term, pricing, features); Seat = one unit of it, with its own license codes |
+| "How does checkout connect to licensing?" | CheckoutRequest, License, Seat, EncodedCredential | CorrelationId flow, credential provisioning per seat |
 | "What types are in which namespace?" | All entities | Use `monaiq://domain/namespaces` reference |
 
 </reference>

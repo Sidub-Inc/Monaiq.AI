@@ -101,8 +101,8 @@ Determine your application's checkout architecture and identify the offerings to
 **CorrelationId** is a tracking identifier (called `CorrelationId`) that links the purchase back to the buyer. It is an opaque string your application provides that round-trips through the entire checkout flow:
 
 1. Your app sends `CorrelationId` with the checkout request.
-2. Stripe Checkout completes, the webhook fires, the license is created.
-3. The checkout-result call returns `CorrelationId` plus the license key.
+2. Stripe Checkout completes, the webhook fires, the license and its seat(s) are created.
+3. The checkout-result call returns `CorrelationId` plus the license code.
 4. Your app matches `CorrelationId` back to the user and stores the credential.
 
 Use a stable, unique identifier — user ID, tenant ID, or a composite key.
@@ -138,18 +138,21 @@ Fetch `monaiq://config/endpoints` via the MCP `resources/read` operation or `fet
 
 **Key path, free offering, typed address:** the create response may carry a `ClaimUrl`. When it
 does, nothing has been provisioned yet — the address names the buyer but does not prove them.
-Surface the link to the person in front of you (the same link is emailed to the address) and keep
-polling: the result reads pending until the buyer signs in and accepts, then completed with the
-credential, or failed with `Claim expired.` once the seven-day window lapses. Do not add an
-"awaiting claim" status of your own; the status vocabulary is unchanged.
+Redirect the buyer to the link now, in the same browser; never make them wait for an email (the
+same link is emailed only as a fallback for a buyer who closed the tab). Set `ReturnUrl`: they
+confirm, prove the address with a one-time code, and land on `ReturnUrl?session_id=…`, where one
+result read is enough. Without a `ReturnUrl`, keep polling: the result reads pending until the
+buyer confirms, then completed with the credential, or failed with `Claim expired.` once the
+seven-day window lapses. Do not add an "awaiting claim" status of your own;
+the status vocabulary is unchanged.
 
 ## Step 3: Success Handling
 
-After the user completes Stripe Checkout, retrieve the result using the session ID. The result exposes the checkout status, the `CorrelationId` you originally supplied, the license ID, and the encoded credential string.
+After the user completes Stripe Checkout, retrieve the result using the session ID. The result exposes the checkout status, the `CorrelationId` you originally supplied, the license ID, the purchased seat IDs, and the encoded credential string.
 
 Persist the credential against the user identified by `CorrelationId` — this credential is what the licensing SDK uses at runtime.
 
-Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the reseller profile. The value belongs to the license just bought: it carries a license-scoped runtime token, authorizes and meters that one license, and the buyer can revoke it from their license page. Store the whole string as issued — never split it, never decode the token inside it, never log it.
+Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the reseller profile. The value belongs to the seat just bought: it carries a seat-scoped runtime token, authorizes and meters that one seat, and the buyer can revoke it from their seat page. A purchase of more than one seat returns no credential at completion — issue one per seat as it is assigned. Store the whole string as issued — never split it, never decode the token inside it, never log it.
 
 For the platform-specific result type and retrieval call pattern:
 
@@ -184,6 +187,7 @@ Connect the purchased credential to the licensing SDK so feature checks work at 
 | Credential scope | Wiring pattern |
 |------------------|----------------|
 | User-managed (multi-tenant, per-user) | Implement a custom licensing-context provider that resolves the credential from your user storage; register it in place of the default provider. |
+| Tenant with seats (the app has its own accounts and tenants) | License the tenant, not the user. A tenant holds a license of one or more seats; the backend issues one credential per seat and stores it against the tenant. The context provider returns the credential of the seat with the most allowance left for the request's tenant. End users never hold a license code. Step 4's `tenantSeats` content carries the recipe: checkout per tenant with `CorrelationId`, one credential per seat, seat choice by `Remaining`, associating a purchase made elsewhere by `LicenseId` (linked to one tenant unless the app shares purchases on purpose), upgrade by association, sync on signals rather than a timer, machines on one seat. Guide: `https://docs.monaiq.com/integrate/tenant-licensing/`. |
 | Configuration-based (single-organization license) | Store the encoded credential in your app configuration and restart; the default configuration-driven provider handles the rest. |
 
 For the platform-specific provider interface, method signatures, and registration call:

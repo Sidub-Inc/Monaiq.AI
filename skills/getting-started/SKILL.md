@@ -85,7 +85,7 @@ When users describe what they want using everyday language, map their terms to M
 | "subscription" / "recurring billing" | ProductOffering | LicenseClassification = Subscription |
 | "free trial" / "trial period" | ProductOffering | LicenseClassification = Trial |
 | "one-time purchase" / "perpetual license" | ProductOffering | LicenseClassification = Perpetual |
-| "license key" / "activation key" / "license code" | EncodedCredential | One `SIDUB_LIC_` string scoped to ONE license. Returned by a completed checkout, or issued on the license page (shown once, listable and revocable there), then stored by the app. Not the account API key. |
+| "license key" / "activation key" / "license code" | EncodedCredential | One `SIDUB_LIC_` string scoped to ONE seat of a license. Returned by a completed checkout, or issued on the seat page (shown once, listable and revocable there), then stored by the app. Not the account API key. |
 | "feature flag" / "premium feature" | ProductAccessFeature | Gated by FeatureKey |
 | "usage limit" / "API quota" / "rate limit" | ProductRateLimitFeature | Metered by FeatureKey |
 | "pricing tier" / "plan" | ProductOffering | Bundles features at a price point |
