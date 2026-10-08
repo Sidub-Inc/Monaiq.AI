@@ -28,7 +28,7 @@ If invoked without upstream context, asks the user about their application type 
 
 <output-context>
 Provides to design-monetization:
-- selectedScenario: { name, model, featureTypes: ["access" | "ratelimit"], offeringModel, enforcement }
+- selectedScenario: { name, model, featureTypes: ["access" | "ratelimit" | "quota"], offeringModel, enforcement }
 - appType: "saas" | "desktop" | "plugin" | "package" | "cli" | "api"
 
 Discovery chain: analyze-codebase [capabilities] → scenario-advisor [selectedScenario] → design-monetization [pricingPlan]

@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks how to set up Monaiq licensing in code — not asking about pricing or catalog design"
 tags: [sdk, integration, licensing, setup, dotnet, react]
 category: integration
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, product, product_feature, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, product, product_feature, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 argument-hint: "platform (dotnet|dotnet/blazor-server|react|react/vite|react/nextjs)"
 tier: 2
 invoked-by: [getting-started]
@@ -90,7 +90,7 @@ Install the SDK package for the target stack. For the installation command, pack
 
 Fetch `monaiq://sdk/{stack}/setup` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
-> **Note (.NET):** Requires Sidub.Platform 1.10.38+. Consumers using this version or later do not need any `<ExcludeAssets>` Metalama workaround — the Metalama build tool is no longer a transitive dependency (DEV-08 / RT-6 resolved in Sidub.Platform.Core).
+> **Note (.NET):** Requires Sidub.Platform 1.11.4+. Consumers using this version or later do not need any `<ExcludeAssets>` Metalama workaround — the Metalama build tool is no longer a transitive dependency (DEV-08 / RT-6 resolved in Sidub.Platform.Core).
 
 ## Step 3: Namespace Reference
 
@@ -151,7 +151,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 ## Step 7: Displaying License State
 
 Your application often needs to render the user's current license, entitlements, or consumption
-— entitled features, rate-limit usage, expiry. The Monaiq SDK exposes this snapshot in-process; it
+— entitled features, rate-limit usage, allowance remaining, expiry. The Monaiq SDK exposes this snapshot in-process; it
 does **not** ship UI chrome. Render with your existing component library.
 
 - For the platform-specific signature (`LicensingClient.getState()` for React,
@@ -220,7 +220,7 @@ When state detection shows SDK is already integrated, offer these options:
 | Credential retrieval fails | `profile` tool returns an error | On `AuthError`, ask the user to complete their MCP client's OAuth sign-in, then retry. |
 | Config binding fails | Licensing configuration exception at startup | Verify the configuration section name and key casing match the platform-specific configuration shape. Check that the credential field is not empty or malformed. Resolve `monaiq://sdk/{stack}/setup` for the authoritative configuration keys. |
 | DI registration fails | Build error on the SDK's registration extension or provider component | Verify the package is installed and the correct imports/usings are present. Resolve `monaiq://platforms/api-surface/{platform}` for the authoritative extension-method or component signatures. |
-| Authorization call returns null | License validation fails at runtime | Verify the purchased EncodedCredential is present in configuration or the application's credential store. Resolve `monaiq://config/endpoints` to confirm service URIs are correct for the target environment. Resolve `monaiq://platforms/pitfalls/{platform}` for platform-specific null-semantics differences. |
+| Authorization call throws | License validation fails at runtime | Verify the purchased EncodedCredential is present in configuration or the application's credential store. Resolve `monaiq://config/endpoints` to confirm service URIs are correct for the target environment. Resolve `monaiq://platforms/pitfalls/{platform}` for platform-specific null-semantics differences. |
 
 SDK integration steps are non-destructive — each step modifies source files that can be edited again safely.
 </error-recovery>

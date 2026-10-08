@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-description: "Use when: adding Monaiq feature gates, access checks, premium feature enforcement, rate-limit assertions, consumption recording, or license feature checks to an SDK-integrated app."
+description: "Use when: adding Monaiq feature gates, access checks, premium feature enforcement, rate-limit or allowance assertions, consumption recording, or license feature checks to an SDK-integrated app."
 agent: monaiq
 auto-invoke:
   - "User wants to add feature gating to their application"
@@ -9,7 +9,7 @@ auto-invoke:
 tags: [sdk, features, licensing, entitlements, access, ratelimit]
 category: integration
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, product, product_feature, feature_offering, implement_product_feature, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_product_feature, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
-argument-hint: "featureKey, featureType (access|ratelimit)"
+argument-hint: "featureKey, featureType (access|ratelimit|quota)"
 tier: 3
 invoked-by: [implement-licensing, manage-catalog]
 ---
@@ -23,7 +23,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 </monaiq-agent-handoff>
 
 <execution_context>
-Follows the skill layout and shared workflows in `_shared/protocols.md`. This skill contributes only feature-gate, rate-limit, consumption, and validation decisions.
+Follows the skill layout and shared workflows in `_shared/protocols.md`. This skill contributes only feature-gate, rate-limit, allowance, consumption, and validation decisions.
 </execution_context>
 
 <input-output-contract>
@@ -53,7 +53,7 @@ For `CHECKPOINT-FEATURE-SELECTION`, `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, and an
 5. Use evidence before asking a new question. Infer the feature path from the selected feature, route packet, existing UI/business-logic location, SDK state, catalog/offering facts, and journal decisions. You must confirm inferred decisions in the next existing checkpoint, especially `CHECKPOINT-FEATURE-SELECTION` or `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, with labeled assumptions for credential handling impact, checkout architecture impact, feature path, and next steps. Do not add a new checkpoint name solely for evidence inference.
 6. Present the plan using `_shared/response-patterns.md` "Evidence Backing" plus selected feature, feature kind, source files/areas, and validation plan.
 7. Call `implement_product_feature` with `startStep=all` when context is sufficient; use `startStep=1` then `startStep=2` only when step-by-step review improves safety.
-8. Stop at `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT` before adding or changing feature gates, access checks, rate-limit assertions, consumption recording, UI locked states, or other business logic. Record the user's approval result before edits.
+8. Stop at `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT` before adding or changing feature gates, access checks, rate-limit or allowance assertions, consumption recording, UI locked states, or other business logic. Record the user's approval result before edits.
 9. Apply code changes using the authoritative tool/resource guidance only. If guidance is missing, contradictory, or insufficient, stop and record a plugin guidance defect with `monaiq_journal record_error`.
 10. Build and exercise allow, denied, expired/misconfigured, and over-limit paths where applicable. Record validation failures with `monaiq_journal record_validation_failure` before remediation.
 11. Coalesce changed paths, validation proof, feature implementation checklist progress, and `featureImpl` handoff through `_shared/workflows/completion.md`; use `record_file_changes` only when changed paths exist. Call `update_checklist_progress` for feature implementation only after source skill, relevant MCP tool, canonical resources, and checkpoint/journal evidence prove the gate is complete before marking the checklist gate complete. Save `CHECKPOINT-SKILL-COMPLETE` with `proofOfDone` only when useful, apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`, then call `skill_completed` once and hand off persisted `featureImpl` or `validationProof`.
@@ -77,19 +77,19 @@ Use host-native UI quality: compact, accessible, responsive, aligned with the so
 <reference>
 ## Feature Discovery Reference
 
-Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit features require feature retrieval, consumption recording, and assertion. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
+Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit and Quota (allowance) features require feature retrieval, consumption recording, and assertion. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
 
 ## Feature-Type Decision Table
 
-| Aspect | Feature Flag (Access) | Usage Limit (RateLimit) |
-|--------|----------------------|-------------------------|
-| Pattern | Assert → allowed/denied | Get feature → record consumption → assert |
-| Use case | Premium content, feature flags, capability toggles | API rate limits, usage quotas, metered operations |
-| Cardinality | One assertion per check | Multi-step: retrieve → record → assert |
+| Aspect | Feature Flag (Access) | Usage Limit (RateLimit) | Allowance (Quota) |
+|--------|----------------------|-------------------------|-------------------|
+| Pattern | Assert → allowed/denied | Get feature → record consumption → assert (throws over the limit) | Get feature → record use → assert |
+| Use case | Premium content, feature flags, capability toggles | API rate limits, burst protection — a cap per rolling window inside each runtime | Monthly exports, included units — so many uses per billing period, counted by the platform across every runtime of a seat |
+| Cardinality | One assertion per check | Multi-step: retrieve → record → assert | Multi-step: retrieve → record → assert |
 
 ## Implementation Reference
 
-- Place all licensing-related string literals (feature keys, offering ids, redirect URLs) in a single constants module (e.g. `LicensingConstants.cs` for .NET, `licensingConstants.ts` for React). Reference them by symbol — do NOT inline the literal in business logic. This is mandatory (Phase 14 D-30).
+- Place all licensing-related string literals (feature keys, offering ids, redirect URLs) in a single constants module (e.g. `LicensingConstants.cs` for .NET, `licensingConstants.ts` for React). Reference them by symbol — do NOT inline the literal in business logic. This is mandatory.
 
 ### Feature Flag Check (Access — Binary Gate)
 
@@ -99,11 +99,15 @@ Resolve platform-specific assertion types, call sequence, and runtime wiring thr
 
 ### Usage Limit Check (RateLimit — Metered Consumption)
 
-Use when: usage must be metered and bounded (API rate limits, per-period quotas, consumption-based features). Pattern is always multi-step — retrieve the feature record, record consumption, then assert whether the limit is still respected.
+Use when: usage must be metered and bounded inside each runtime (API rate limits, burst protection, consumption-based features); so many uses per billing period is an allowance, below. Pattern is always multi-step — retrieve the feature record, record consumption, then assert whether the limit is still respected.
 
 <!-- SEM-01-stopgap -->
 > **Unlimited assignments.** In the domain model, `RateLimit = 0` represents an unlimited entitlement. When creating or updating a rate-limit assignment through the `feature_offering` MCP tool, send both `RateLimit` and `SampleSeconds` as the string `"unlimited"`; the tool maps that to the internal zero representation. Non-zero capped values must be positive integers for both fields.
 <!-- /SEM-01-stopgap -->
+
+### Allowance Check (Quota — Uses per Billing Period)
+
+Use when: a capability is sold as so many uses per billing period. Retrieve the feature and record the use. A use the allowance does not cover is refused: it is neither counted nor reported, and the call throws with the date the period resets. To refuse the work before doing it, check first. There is no unlimited allowance: an uncapped capability is an access feature.
 
 Rate-limit and consumption exceptions are product signals and must not be silently swallowed. Surface them in logs/UI/validation paths so the user understands when an entitlement or quota blocked the action.
 
@@ -155,13 +159,13 @@ Build-and-verify guidance is delivered by `implement_product_feature` step 2 via
 | Wrong assertion type used | Runtime type-mismatch error | Check the feature's kind — resolve `monaiq://platforms/api-surface/{platform}` for the correct assertion type per kind, and `monaiq://domain/model` for the kind enum. |
 | Namespace import errors | Build fails with missing type references | Resolve `monaiq://domain/namespaces` and verify all imports match the authoritative reference. |
 | Assertion returns unexpected result | Feature check returns denied when it should be allowed | Verify the feature is assigned to the user's offering with the correct value (Allowed, not Denied). Check via the `feature_offering` tool. |
-| Consumption recording fails | Recording operation throws for RateLimit features | Verify the feature type is RateLimit (not Access). Check that the consumption amount is a positive number. Resolve `monaiq://platforms/pitfalls/{platform}` for platform-specific error modes. |
+| Consumption recording fails | Recording operation throws for RateLimit or Quota features | Verify the feature type is RateLimit or Quota (not Access). Check that the consumption amount is a positive number. Resolve `monaiq://platforms/pitfalls/{platform}` for platform-specific error modes. |
 
 Feature-gate code is additive — failed implementations can be corrected by editing the source file. No rollback needed.
 </error-recovery>
 
 <success_criteria>
-- Correct assertion type used for each feature kind (Access vs. RateLimit).
+- Correct assertion type used for each feature kind (Access, RateLimit or Quota).
 - Feature checks return allowed for valid licenses with the feature granted.
 - Application handles the denied case gracefully.
 - No namespace errors — all imports match `monaiq://domain/namespaces`.

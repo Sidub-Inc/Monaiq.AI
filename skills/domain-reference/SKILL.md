@@ -63,8 +63,8 @@ Fetch the domain model MCP resource. This contains comprehensive documentation o
 Fetch `monaiq://domain/model` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
 **Key entities covered:**
-- Customer, Product, ProductFeature (polymorphic: Access/RateLimit)
-- ProductOffering, FeatureOffering (polymorphic: ServiceAccess/RateLimit)
+- Customer, CustomerMember, Product, ProductFeature (polymorphic: Access/RateLimit/Quota)
+- ProductOffering, FeatureOffering (polymorphic: ServiceAccess/RateLimit/Quota)
 - License, LicenseFeature, FeatureRate, Seat
 - KeyDescriptor, EncodedCredential
 

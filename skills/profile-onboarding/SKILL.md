@@ -1,6 +1,6 @@
 ---
 name: profile-onboarding
-description: "Use when: viewing Monaiq reseller profile status, retrieving reseller ApiKey and IssuerClientId, or reviewing terms and privacy documents."
+description: "Use when: viewing Monaiq reseller profile status, retrieving reseller ApiKey (owners only) and IssuerClientId, or reviewing terms and privacy documents."
 agent: monaiq
 auto-invoke:
   - "User wants to view their reseller profile or retrieve SDK credentials"
@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks about their onboarding status or account details"
 tags: [profile, onboarding, credentials, terms]
 category: onboarding
-allowed-tools: [profile, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
+allowed-tools: [profile, account, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__account, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
 tier: 3
 invoked-by: [getting-started]
 ---
@@ -81,7 +81,7 @@ Call the `profile` tool with `startStep=1` to view the reseller profile.
 - **ProfileStatus = Completed** — All required profile information is on file
 - **ResellerStatus = NotStarted** — Reseller terms not accepted; the seller account is not activated
 - **ResellerStatus = Pending** — Reseller application submitted, awaiting approval
-- **ResellerStatus = Enabled** — The seller account is active: the user can create products, offerings, and issue licenses. That is not the same as being able to sell — completing a sale additionally requires platform standing (see Platform Standing below)
+- **ResellerStatus = Enabled** — The seller account is active: the user can create products and offerings and sell them (a completed checkout creates each license). That is not the same as being able to sell — completing a sale additionally requires platform standing (see Platform Standing below)
 
 The `IssuerClientId` is the primary identifier for the reseller account. It is used as the `IssuerClientId` parameter in checkout requests and appears in license metadata.
 
@@ -112,7 +112,7 @@ The `IssuerClientId` is the primary identifier for the reseller account. It is u
 
 ## Retrieve Credentials
 
-Call the `profile` tool with `startStep=2` to retrieve reseller credentials used for catalog and checkout operations.
+Call the `profile` tool with `startStep=2` to retrieve reseller credentials used for catalog and checkout operations. The `ApiKey` is revealed to owners of the account only (as on the portal's credentials page and in `provision_api_key_config`): a member's response carries `apiKey: null` and a `troubleshooting` block naming the rule — tell the member to ask an owner for the key, or to have an owner run `provision_api_key_config`. Use the `account` tool to see which account, and which role, this connection acts as.
 
 **Credential fields:**
 
@@ -121,7 +121,7 @@ Call the `profile` tool with `startStep=2` to retrieve reseller credentials used
 | `ApiKey` | Authenticates SERVER-SIDE checkout API calls; it is the whole ACCOUNT, including what that account sells with | `CreateCheckoutSession` and `GetCheckoutResult` API key parameter |
 | `IssuerClientId` | Reseller identity for checkout requests | `CheckoutRequest.IssuerClientId` |
 
-EncodedCredential is not a reseller profile credential. It belongs to a SEAT of a license: it is produced when an offering is purchased and returned by checkout-result retrieval, or issued by the license's owner on the seat page. It carries a seat-scoped runtime token, so it authorizes and meters that one seat and reaches nothing else — which is exactly why it, and never the `ApiKey`, is what a distributed application configures.
+EncodedCredential is not a reseller profile credential. It belongs to a SEAT of a license: it is produced when an offering is purchased and returned by checkout-result retrieval, or issued on the seat page by the account that bought it. It carries a seat-scoped runtime token, so it authorizes and meters that one seat and reaches nothing else — which is exactly why it, and never the `ApiKey`, is what a distributed application configures.
 
 **Security:** Do not persist the `ApiKey` to disk or commit it to source control. Use environment variables or a secrets manager for production deployments. Never ship it inside an application a buyer runs.
 Do not write raw `ApiKey`, `IssuerClientId` plus secret context, `EncodedCredential`, `.env`, or user-secret values into prompts, `.monaiq`, summaries, or generated plugin output.
@@ -146,14 +146,15 @@ Review both documents carefully before proceeding to accept terms.
 
 **Important:** Accepting terms is NOT part of this skill workflow. It is a **tool action** that modifies state.
 
-To accept terms, call the `profile` tool directly with `startStep=4` and `data={"customerTerms": true, "resellerTerms": true}`. Both `customerTerms` and `resellerTerms` must be set to `true` to complete terms acceptance. This action records the user's agreement and updates the profile status.
+To accept terms, call the `profile` tool directly with `startStep=4` and `data={"customerTerms": true, "resellerTerms": true}`. Each flag is optional — include only the terms the user accepts. Customer terms complete the profile (`ProfileStatus = Completed`); reseller terms enable selling (`ResellerStatus = Enabled`), so a seller accepts both. This action records the user's agreement and updates the profile status.
 
 ## Related Tools
 
 - OAuth sign-in — handled by the MCP client (prerequisite for all profile operations; no tool call)
 - `profile` — The tool that executes each step of this workflow
 - `implement_base` — SDK integration (configures where purchased credentials are supplied at runtime)
-- `implement_purchase_flow` — Checkout integration (uses ApiKey and IssuerClientId from step 2)
+- `implement_purchase_flow` — Checkout integration (the buyer-bearer path needs only IssuerClientId; the server-side key path also needs the ApiKey from step 2)
+- `account` — Which of the user's accounts this connection acts as, and the role held there
 
 ## Utility Workflows
 
@@ -167,7 +168,7 @@ To accept terms, call the `profile` tool directly with `startStep=4` and `data={
 <success_criteria>
 - Profile information is visible including `IssuerClientId`, `ProfileStatus`, `ResellerStatus`, and `platformPlan.standing`
 - When `platformPlan.standing` is `None` or `Lapsed`, the user is pointed at the `sellerWizardUri` and no purchase is attempted through MCP
-- Reseller credentials (`ApiKey`, `IssuerClientId`) are retrieved successfully
+- Reseller credentials are retrieved: `IssuerClientId` always, `ApiKey` for an owner (a member is told to ask an owner)
 - Terms of Service and Privacy Policy are presented for review
 - Step 4 (terms acceptance) is understood as a separate tool action with `startStep=4`
 - No raw `ApiKey`, `EncodedCredential`, `.env`, or user-secret values are written into prompts, `.monaiq`, summaries, or generated plugin output

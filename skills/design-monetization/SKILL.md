@@ -9,7 +9,7 @@ auto-invoke:
   - "User mentions pricing confusion, pricing strategy, or monetization approach"
 tags: [strategy, pricing, monetization, tiers, design]
 category: strategy
-allowed-tools: [product, product_feature, offering, feature_offering, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [product, product_feature, offering, feature_offering, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 tier: 1
 invoked-by: [user, analyze-codebase, getting-started]
 ---
@@ -78,13 +78,15 @@ Using pricing patterns from `monaiq://patterns/pricing`, propose a complete tier
 
 | Tier | Name | License Type | Price | Interval | Features Included |
 |------|------|-------------|-------|----------|-------------------|
-| 1 | [e.g., Free] | Subscription | $0 | 1 Month | [list with access/rate-limit values] |
-| 2 | [e.g., Pro] | Subscription | $X | 1 Month | [list with access/rate-limit values] |
-| 3 | [e.g., Enterprise] | Subscription | $Y | 1 Month | [list with access/rate-limit values] |
+| 1 | [e.g., Free] | Subscription | $0 | 1 Month | [list with access/rate-limit/allowance values] |
+| 2 | [e.g., Pro] | Subscription | $X | 1 Month | [list with access/rate-limit/allowance values] |
+| 3 | [e.g., Enterprise] | Subscription | $Y | 1 Month | [list with access/rate-limit/allowance values] |
 
 For each feature in each tier, specify:
 - Feature flags (Access features): `Allowed` or `Denied`
 - Usage limits (RateLimit features): quota value and time window (e.g., "1000 per hour")
+- Allowances (Quota features): uses per billing period (e.g., "500 exports per month") — always a positive number; an uncapped capability is an access feature
+- Per-use price (optional): the feature offering's `Rate`, billed on every reported use of a Subscription license
 
 <!-- SEM-01-stopgap -->
 > **Unlimited tiers.** When calling the `feature_offering` MCP tool, set both `RateLimit` and `SampleSeconds` to the string `"unlimited"` for an uncapped assignment. The tool maps that input to the domain's zero-as-unlimited representation internally. Paid capped tiers set explicit positive values (e.g. `RateLimit = 1000` with `SampleSeconds = 3600` for 1000/hour).

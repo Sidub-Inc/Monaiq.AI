@@ -14,7 +14,7 @@ invoked-by: [getting-started]
 ---
 
 <objective>
-Analyze an existing app and produce an evidence packet of licensable capabilities, classified as Access or RateLimit features, with suggested FeatureKey values and downstream routing. This skill is read-only except for journal updates.
+Analyze an existing app and produce an evidence packet of licensable capabilities, classified as Access, RateLimit or Quota (allowance) features, with suggested FeatureKey values and downstream routing. This skill is read-only except for journal updates.
 </objective>
 
 <input-context>
@@ -48,7 +48,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 3. Determine scan scope from route context, prior journal state, existing conversation analysis, and project structure. Use `CHECKPOINT-ANALYSIS-SCOPE` before broad scans or scope changes.
 4. If products exist, call `product_feature` list and compare catalog features against codebase findings so the output can distinguish existing coverage from gaps.
 5. Scan project configuration and key business-code areas. Keep evidence bounded: file paths, area summaries, observed patterns, and confidence; do not quote secrets or dump full files.
-6. Classify findings as Access or RateLimit features using fetched scenario/domain taxonomy. Generate stable suggested FeatureKey values.
+6. Classify findings as Access (yes/no), RateLimit (a cap per rolling window inside each runtime) or Quota (so many uses per billing period) features using fetched scenario/domain taxonomy. Generate stable suggested FeatureKey values.
 7. Present the evidence packet using `_shared/response-patterns.md` "Evidence Backing" plus source areas.
 8. If missing or stale evidence prevents a confident recommendation, route to `analyze-codebase`, profile/catalog state detection, or the narrowest prerequisite journey step before catalog/pricing recommendations.
 9. Output the codebase evidence packet for `scenario-advisor`, coalesce analysis artifacts, checklist progress, and handoff context into the completion workflow, then call `skill_completed` once.

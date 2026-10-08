@@ -8,7 +8,7 @@ auto-invoke:
   - "User asks how to embed a buy button or purchase flow"
 tags: [sdk, checkout, purchase, licensing, stripe]
 category: integration
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, offering, feature_offering, implement_purchase_flow, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_purchase_flow, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, profile, offering, feature_offering, implement_purchase_flow, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_purchase_flow, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 argument-hint: "platform (dotnet|dotnet/blazor-server|react|react/vite|react/nextjs)"
 tier: 3
 invoked-by: [implement-licensing, manage-catalog]
@@ -29,7 +29,7 @@ Follows the skill layout and shared workflows in `_shared/protocols.md`. This sk
 <input-output-contract>
 Input from `implement-licensing` or `manage-catalog`: optional `sdkConfig`, optional `catalogSpec`, route/journal context, and target offering evidence. Direct invocation must verify SDK integration and discover sellable offerings before checkout work.
 
-Output: `checkoutImpl: { architecture: "server-initiated" | "client-only", offeringCodes: [], checkoutRoute: string, successHandler: string }` plus validation status.
+Output: `checkoutImpl: { architecture: "buyer-bearer" | "server-initiated" | "hosted-page" | "client-only", offeringCodes: [], checkoutRoute: string, successHandler: string }` plus validation status.
 </input-output-contract>
 
 <tool-first-authority>
@@ -95,14 +95,15 @@ Determine your application's checkout architecture and identify the offerings to
 
 | Architecture | Flow | Recommendation |
 |-------------|------|----------------|
-| Has backend (API, BFF, SSR) | Server-Initiated Checkout | Recommended — secure; correlation ID stays server-side. |
-| Frontend only (SPA) | Client-Only Checkout | Viable — ensure HTTPS; correlation ID managed client-side. |
+| Distributed app the buyer runs (desktop, mobile, CLI, installed shell) | Buyer-bearer purchase — the buyer signs in and buys with their own bearer token | Recommended — no seller secret ships with the app; catalog read live, anonymously. |
+| Has backend (API, BFF, SSR) | Server-Initiated Checkout (key path, account API key) | Recommended for server-side code — the key and correlation ID stay server-side. |
+| Browser SPA with no backend | Hosted marketplace page | Link the buyer to the seller's storefront; a browser must never hold the account API key. |
 
 **CorrelationId** is a tracking identifier (called `CorrelationId`) that links the purchase back to the buyer. It is an opaque string your application provides that round-trips through the entire checkout flow:
 
 1. Your app sends `CorrelationId` with the checkout request.
-2. Stripe Checkout completes, the webhook fires, the license and its seat(s) are created.
-3. The checkout-result call returns `CorrelationId` plus the license code.
+2. Paid: Stripe Checkout completes, the webhook fires, the license and its seat(s) are created. Free: the buyer-bearer path mints the license at once; the key path first sends the buyer to the claim link.
+3. The checkout-result call returns `CorrelationId`, the license ID and its seat IDs — plus the license code when one seat was bought.
 4. Your app matches `CorrelationId` back to the user and stores the credential.
 
 Use a stable, unique identifier — user ID, tenant ID, or a composite key.
@@ -117,7 +118,7 @@ Fetch `monaiq://platforms/api-surface/{platform}` via the MCP `resources/read` o
 
 ## Step 2: Backend Integration
 
-Create a checkout session by calling the SDK's checkout service. The session carries the offering ID, the reseller identifier (`IssuerClientId`), the correlation ID, the customer email, and success / cancel return URLs. The response is either a redirect URL (paid offerings) or `null` (free / trial offerings, which auto-complete).
+Create a checkout by calling the SDK's purchase client (buyer-bearer path) or checkout service (key path). The request carries the offering ID, the reseller identifier (`IssuerClientId`), the correlation ID, an optional seat quantity (1 to 100), return URLs and — on the key path only — the customer email. The response carries a redirect URL for a paid offering. For a free / trial offering there is none: on the buyer-bearer path it auto-completes; on the key path it carries a `ClaimUrl` (below).
 
 For the platform-specific checkout-service type, request/response shapes, and invocation pattern:
 
@@ -132,8 +133,8 @@ For the checkout endpoint base URL (do not hardcode — resolve at configuration
 Fetch `monaiq://config/endpoints` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
 **Security notes (platform-neutral):**
-- Never expose the `ApiKey` to frontend code in production — proxy through your backend.
-- `IssuerClientId` identifies your reseller account — obtained from the `profile` tool.
+- Never expose the `ApiKey` to frontend code or ship it in an app the buyer runs — distributed apps use the buyer-bearer path, browsers proxy through your backend.
+- `IssuerClientId` identifies your reseller account — obtained from the `profile` tool. The `ApiKey` (key path) is revealed to owners of the account only.
 - Use HTTPS for every success / cancel URL.
 
 **Key path, free offering, typed address:** the create response may carry a `ClaimUrl`. When it
@@ -167,7 +168,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 Once the credential is persisted, **refresh the client and read current state** so the rest of the app
 sees the new entitlements without a full reload:
 
-- **React / Node:** `await client.refresh({ encodedCredential }); const state = await client.getState();`
+- **React / Node:** `await client.refresh({ ...client.getConfig(), encodedCredential }); const state = await client.getState();`
 - **.NET:** `var state = await provider.GetState(serviceReference, context);`
 
 Wire these two calls into whatever success-callback shape your app already uses — the Stripe webhook
@@ -187,7 +188,7 @@ Connect the purchased credential to the licensing SDK so feature checks work at 
 | Credential scope | Wiring pattern |
 |------------------|----------------|
 | User-managed (multi-tenant, per-user) | Implement a custom licensing-context provider that resolves the credential from your user storage; register it in place of the default provider. |
-| Tenant with seats (the app has its own accounts and tenants) | License the tenant, not the user. A tenant holds a license of one or more seats; the backend issues one credential per seat and stores it against the tenant. The context provider returns the credential of the seat with the most allowance left for the request's tenant. End users never hold a license code. Step 4's `tenantSeats` content carries the recipe: checkout per tenant with `CorrelationId`, one credential per seat, seat choice by `Remaining`, associating a purchase made elsewhere by `LicenseId` (linked to one tenant unless the app shares purchases on purpose), upgrade by association, sync on signals rather than a timer, machines on one seat. Guide: `https://docs.monaiq.com/integrate/tenant-licensing/`. |
+| Tenant with seats (the app has its own accounts and tenants) | License the tenant, not the user. A tenant holds a license of one or more seats; the backend issues one credential per seat and stores it against the tenant. The context provider returns the credential of the seat the application assigns to the request (the plain case: a seat for each user); the SDK never chooses a seat. End users never hold a license code. Step 4's `tenantSeats` content carries the recipe: checkout per tenant with `CorrelationId`, one credential per seat, seat assignment as the application's own rule, associating a purchase made elsewhere by `LicenseId` (linked to one tenant unless the app shares purchases on purpose), upgrade by association, sync on signals rather than a timer, machines on one seat. Guide: `https://docs.monaiq.com/integrate/tenant-licensing/`. |
 | Configuration-based (single-organization license) | Store the encoded credential in your app configuration and restart; the default configuration-driven provider handles the rest. |
 
 For the platform-specific provider interface, method signatures, and registration call:
@@ -215,7 +216,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 - `implement_purchase_flow` — Interactive step-by-step checkout integration (call `startStep=1` through `startStep=4` consecutively).
 - `offering` — Browse available product offerings.
 - `feature_offering` — View feature assignments for an offering.
-- `profile` — Retrieve `IssuerClientId` and `ApiKey`.
+- `profile` — Retrieve `IssuerClientId`, and `ApiKey` for an owner of the account (key path only).
 
 ## Related Resources
 
@@ -239,18 +240,18 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 
 | Failure Point | Symptom | Recovery Action |
 |--------------|---------|----------------|
-| Checkout session creation fails | Session-create call returns error | Verify `ApiKey` and `IssuerClientId` are correct (re-fetch from `profile`). Confirm the offering has Status = Public. |
+| Checkout session creation fails | Session-create call returns error | Verify `IssuerClientId` (and, on the key path, the `ApiKey` — an owner re-fetches it from `profile`). Confirm the offering's Status is Public or Private and the seller holds a Monaiq plan (`profile` step 1 `platformPlan`). |
 | Stripe redirect fails | User sees Stripe error page | Verify success and cancel URLs use HTTPS and include the session-ID placeholder expected by the checkout service (see `monaiq://platforms/api-surface/{platform}`). Confirm the offering's `BaseRate` and `Currency` are valid. |
-| Checkout-result retrieval returns no credential | Result poll returns an empty encoded-credential value | The checkout may not be complete yet — retry after a short delay. If persistent, verify the session ID is correct. |
+| Checkout-result retrieval returns no credential | Result poll returns an empty encoded-credential value | The checkout may not be complete yet — retry after a short delay; a key-path claim stays pending until the buyer accepts. A completed purchase of more than one seat carries no credential by design — issue one per seat from its seat IDs. If persistent, verify the session ID is correct. |
 | Credential storage fails | License purchased but credential lost | Re-call the checkout-result retrieval with the same session ID; results are persistent server-side. |
 | Context provider wiring fails | Feature checks return null after purchase | Verify the custom context provider returns the stored credential. Check DI / composition-root registration against `monaiq://sdk/{stack}/setup`. |
 
-Checkout sessions are idempotent — creating a new session for the same offering is safe. Completed purchases are recorded server-side and can be recovered.
+A checkout create is idempotent by its request ID: resending the same request ID replays the existing checkout, while a new request ID starts a new one. Completed purchases are recorded server-side and can be recovered.
 </error-recovery>
 
 <success_criteria>
-- Checkout session creation works — returns a Stripe URL (paid) or null (free/trial).
-- Checkout-result retrieval returns the encoded credential and the correlation ID after payment completes.
+- Checkout creation works — returns a Stripe URL (paid), nothing to redirect to on the buyer-bearer free path, or a claim URL on the key-path free path.
+- Checkout-result retrieval returns the correlation ID, license ID and seat IDs after the purchase completes, and the encoded credential for a one-seat purchase.
 - Credential is stored and the runtime authorization call returns a valid result using the purchased license.
 - Feature checks work at runtime with the purchased credential.
 - `ApiKey` is not exposed to frontend code in production.

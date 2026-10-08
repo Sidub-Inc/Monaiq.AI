@@ -9,7 +9,7 @@ auto-invoke:
   - "User asks 'where do I start' or 'how do I begin' with licensing"
 tags: [onboarding, getting-started, orchestration, state-detection]
 category: onboarding
-allowed-tools: [getting_started, profile, product, offering, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__getting_started, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
+allowed-tools: [getting_started, profile, account, product, offering, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__getting_started, mcp__plugin_monaiq_monaiq__account, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
 tier: 1
 invoked-by: [user]
 ---
@@ -87,7 +87,8 @@ When users describe what they want using everyday language, map their terms to M
 | "one-time purchase" / "perpetual license" | ProductOffering | LicenseClassification = Perpetual |
 | "license key" / "activation key" / "license code" | EncodedCredential | One `SIDUB_LIC_` string scoped to ONE seat of a license. Returned by a completed checkout, or issued on the seat page (shown once, listable and revocable there), then stored by the app. Not the account API key. |
 | "feature flag" / "premium feature" | ProductAccessFeature | Gated by FeatureKey |
-| "usage limit" / "API quota" / "rate limit" | ProductRateLimitFeature | Metered by FeatureKey |
+| "rate limit" / "calls per minute" / "burst limit" | ProductRateLimitFeature | A cap per rolling time window inside each runtime |
+| "monthly quota" / "N per month" / "included units" / "allowance" | ProductQuotaFeature | So many uses per billing period, counted by the platform across every runtime |
 | "pricing tier" / "plan" | ProductOffering | Bundles features at a price point |
 | "product" / "app" / "software" | Product | The scope boundary for all features and offerings |
 
@@ -126,6 +127,7 @@ is created automatically on first sign-in. No credential is ever passed to tools
 
 **Once signed in:**
 - Proceed to Step 2. A brand-new account simply has an empty catalog and a `NotStarted` profile.
+- A person can belong to more than one Monaiq account. Everything over MCP acts as the account they signed into most recently; when the user mentions another organisation, or `getting_started` names the account in use, call `account` (list) to confirm which account and role this connection has, and `account` (switch) only when the user asks to act as another one.
 
 ## State Detection
 

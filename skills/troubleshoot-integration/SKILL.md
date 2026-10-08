@@ -9,7 +9,7 @@ auto-invoke:
   - "User reports a specific error message, exception, or HTTP status code related to licensing"
 tags: [integration, troubleshooting, diagnostics, errors]
 category: integration
-allowed-tools: [Read, Grep, Glob, profile, product, product_feature, offering, feature_offering, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
+allowed-tools: [Read, Grep, Glob, profile, product, product_feature, offering, feature_offering, implement_base, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__offering, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_base, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
 argument-hint: "errorCategory (setup|auth|validation|consumption)"
 tier: 1
 invoked-by: [user]

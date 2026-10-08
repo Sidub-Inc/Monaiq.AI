@@ -96,7 +96,7 @@ For the canonical skill section order, route-packet field names, direct-invocati
 | scenario-advisor | monaiq | 3 | discovery | Licensing model recommendation from app type and capability mix | analyze-codebase, getting-started | No |
 | domain-reference | monaiq | 3 | domain | Domain concept, namespace, and entity relationship explanation | getting-started, manage-catalog, implement-licensing | No |
 | profile-onboarding | monaiq | 3 | onboarding | Profile status, credentials, onboarding state, and terms review | getting-started | No |
-| implement-feature | monaiq | 3 | integration | Feature gate and rate-limit code implementation | implement-licensing, manage-catalog | No |
+| implement-feature | monaiq | 3 | integration | Feature gate, rate-limit and allowance code implementation | implement-licensing, manage-catalog | No |
 | implement-purchase-flow | monaiq | 3 | integration | Checkout, result handling, credential persistence, and post-purchase refresh | implement-licensing, manage-catalog | No |
 
 ## Tier Topology

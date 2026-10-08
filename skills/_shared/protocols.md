@@ -110,7 +110,7 @@ If evidence is thin, the recommendation IS *"scope down — let me run `analyze-
 
 **When the user defers ("you decide", "figure it out").** Treat as authorization to apply the recommended option. Continue under the recommendation, journal the deferral, surface the final choice at the owning checkpoint for confirmation. Do not bounce the question back — that is the failure mode this section exists to prevent.
 
-**Platform-agnostic source.** Skills must not embed framework-specific code, package names, or API surface (e.g., React `featureId` vs .NET `FeatureKey`). Per-stack guidance is owned by `monaiq://sdk/{stack}/setup` resources and the implement-* tools' server-side responses. SDK changes update those; plugin source stays stable.
+**Platform-agnostic source.** Skills must not embed framework-specific code, package names, or API surface (e.g., React `RateLimitError` vs .NET `RateLimitException`). Per-stack guidance is owned by `monaiq://sdk/{stack}/setup` resources and the implement-* tools' server-side responses. SDK changes update those; plugin source stays stable.
 
 ## File Operation Application Protocol
 
