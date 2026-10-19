@@ -2,13 +2,13 @@
 
 Use this workflow before catalog mutation, SDK/config edits, feature implementation, purchase-flow work, troubleshooting fixes, or validation remediation.
 
-1. Resolve readiness for `fetch_step_resources`, `monaiq_journal`, and any required MCP implementation tool for the selected skill.
+1. Resolve readiness for `fetch_step_resources`, `monaiq_journal`, and any required MCP implementation tool for the selected skill: confirm each is callable in this session, not only that its server reports connected. If any is missing, follow `ROUTING-MAP.md` step 0 and stop before work that depends on it.
 2. Fetch `monaiq://protocols/implementation-journal` and read `ROUTING-MAP.md`, `_shared/handoff-schemas.md`, and `_shared/response-patterns.md` when available.
-3. Reuse a current journal state packet supplied by the previous Monaiq skill in this turn when it includes current skill, next action, checklist state, and recent activity. Otherwise call `monaiq_journal get_state` for the consumer project root.
+3. Reuse a current journal state packet supplied by the previous Monaiq skill in this turn when it includes current skill, next action, checklist state, and recent activity. Otherwise read `.monaiq/state.json` and call `monaiq_journal get_state` with it as `frontmatter` (see `maintain-implementation-journal.md` § state-detection).
 4. If state is missing or stale, call `monaiq_journal init` and apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`:
    - For each `ensureDirectory` operation: ensure the directory at `path` exists.
    - For each `writeFile` operation: create or overwrite the file at `path` with `content`.
-   - After applying, verify that `.monaiq/STATE.md` and `.monaiq/JOURNAL.md` exist and `.monaiq/CHECKPOINTS` directory exists.
+   - After applying, verify that `.monaiq/state.json`, `.monaiq/STATE.md` and `.monaiq/JOURNAL.md` exist and `.monaiq/CHECKPOINTS` directory exists.
    - If any expected file is absent after application, report the failure and do not continue.
    > **Scope note:** The **File Operation Application Protocol** applies to every `monaiq_journal` call throughout skill execution — not only the `init` call at startup. Whenever a journal call returns `fileOperations`, apply them immediately before continuing the workflow.
 5. Verify `.monaiq/STATE.md` contains the master journey checklist. Restore it through the journal protocol before substantive work if absent.

@@ -85,7 +85,7 @@ Using pricing patterns from `monaiq://patterns/pricing`, propose a complete tier
 For each feature in each tier, specify:
 - Feature flags (Access features): `Allowed` or `Denied`
 - Usage limits (RateLimit features): quota value and time window (e.g., "1000 per hour")
-- Allowances (Quota features): uses per billing period (e.g., "500 exports per month") — always a positive number; an uncapped capability is an access feature
+- Allowances (Quota features): uses per billing period (e.g., "500 exports per month") — always a positive number; an uncapped capability is an access feature. Carry forward the value-path decisions from `analyze-codebase` (§ Trace Value Paths); if none were recorded, ask which other surfaces return the same value before fixing the number, because an unmetered path makes the allowance meaningless
 - Per-use price (optional): the feature offering's `Rate`, billed on every reported use of a Subscription license
 
 <!-- SEM-01-stopgap -->

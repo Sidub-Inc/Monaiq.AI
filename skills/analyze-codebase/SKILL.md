@@ -49,6 +49,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 4. If products exist, call `product_feature` list and compare catalog features against codebase findings so the output can distinguish existing coverage from gaps.
 5. Scan project configuration and key business-code areas. Keep evidence bounded: file paths, area summaries, observed patterns, and confidence; do not quote secrets or dump full files.
 6. Classify findings as Access (yes/no), RateLimit (a cap per rolling window inside each runtime) or Quota (so many uses per billing period) features using fetched scenario/domain taxonomy. Generate stable suggested FeatureKey values.
+6.5. For every RateLimit or Quota finding, trace its **value paths** (see § Trace Value Paths): every other surface that returns the same value. A limit holds only if each path is metered by the same feature, bounded on purpose, or recorded as free on purpose.
 7. Present the evidence packet using `_shared/response-patterns.md` "Evidence Backing" plus source areas.
 8. If missing or stale evidence prevents a confident recommendation, route to `analyze-codebase`, profile/catalog state detection, or the narrowest prerequisite journey step before catalog/pricing recommendations.
 9. Output the codebase evidence packet for `scenario-advisor`, coalesce analysis artifacts, checklist progress, and handoff context into the completion workflow, then call `skill_completed` once.
@@ -87,19 +88,32 @@ For each identified capability, note the source file, the functionality, and why
 Using the feature type taxonomy from `monaiq://patterns/scenarios`, classify each capability:
 
 - **Feature flag** (called `ProductAccessFeature` in Monaiq): Binary yes/no — user either has access or doesn't. Use for premium modules, feature flags, advanced tools, exclusive content.
-- **Usage limit** (called `ProductRateLimitFeature` in Monaiq): Metered with a quota per time window. Use for API calls, data exports, batch operations, compute units.
+- **Usage limit** (called `ProductRateLimitFeature` in Monaiq): a cap per rolling window inside each runtime. Use for throughput: API calls per minute, burst protection.
+- **Allowance** (Quota feature): so many uses per billing period, counted per seat across every runtime. Use when the use itself is the product: documents processed, exports, compute units.
 
-Apply the heuristic: "Is the answer yes/no?" → Feature flag. "Is the answer how many?" → Usage limit.
+Apply the heuristic: "Is the answer yes/no?" → Feature flag. "How fast?" → Usage limit. "How many this period?" → Allowance.
+
+## Trace Value Paths
+
+A limit meters a call, but a buyer pays for the value the call returns. Before recommending a RateLimit or Allowance, find every path that delivers the same value:
+
+- preview, test or "dry run" paths that return the real output
+- the same data in a second format or through an export
+- an API that returns what a UI meters, or the reverse
+- diagnostic, debug or admin endpoints
+- batch or bulk variants of a single-item call
+
+For each path, record one decision: **metered** (same FeatureKey), **bounded** (its own feature, sized so it cannot replace the metered path), or **free on purpose** (with the reason). A rate limit per runtime does not bound a path on a scale-out host, because it multiplies with instances.
 
 ## Present Findings
 
 Present a structured table of identified capabilities:
 
-| Capability | Source File | Suggested FeatureKey | Feature Type | Reasoning |
-|-----------|-------------|---------------------|--------------|-----------|
-| [capability name] | [file path] | [suggested-key] | Access / RateLimit | [why this type] |
+| Capability | Source File | Suggested FeatureKey | Feature Type | Value Paths | Reasoning |
+|-----------|-------------|---------------------|--------------|-------------|-----------|
+| [capability name] | [file path] | [suggested-key] | Access / RateLimit / Quota | [other paths and their decision, or "none found"] | [why this type] |
 
-Follow with a brief narrative summary: how many capabilities were found, the split between access-gate and rate-limited, and observations about the application's licensing potential.
+Follow with a brief narrative summary: how many capabilities were found, the split between access, rate-limited and allowance features, any value path left unmetered and why, and observations about the application's licensing potential.
 
 ## Suggest Next Step
 
@@ -110,6 +124,7 @@ After presenting findings, suggest: "To map these capabilities to a licensing sc
 <success_criteria>
 - Project config files and key source files were read (not just config)
 - Each identified capability has a suggested FeatureKey, feature type classification, and reasoning
+- Every RateLimit or Quota finding lists its value paths, each metered, bounded or free on purpose
 - Classifications align with `monaiq://patterns/scenarios` feature type taxonomy
 - Findings distinguish existing catalog coverage from codebase gaps when product features are available
 - Findings presented as structured table plus narrative summary

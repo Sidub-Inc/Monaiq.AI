@@ -38,12 +38,12 @@ Receives safe route context, current skill name, checkpoint prompts/results, fil
 </input-context>
 
 <output-context>
-Provides `.monaiq/STATE.md` as the compact resume/control packet, `.monaiq/JOURNAL.md` as the append-only evidence ledger, `.monaiq/CHECKPOINTS/*.md` as immutable approval/result evidence, and optional non-secret `.monaiq/config.json` hints for future sessions.
+Provides `.monaiq/state.json` as the machine-readable state the tool reads back, `.monaiq/STATE.md` as its human-readable resume/control mirror, `.monaiq/JOURNAL.md` as the append-only evidence ledger, `.monaiq/CHECKPOINTS/*.md` as immutable approval/result evidence, and optional non-secret `.monaiq/config.json` hints for future sessions.
 </output-context>
 
 <workflow>
 1. Start from a current journal state packet when the previous Monaiq skill already loaded one in the same turn; otherwise call `monaiq_journal get_state`.
-2. If state is absent or stale, call `monaiq_journal init` and apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`. Verify that `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, and `.monaiq/CHECKPOINTS` all exist after application; if any are missing, report the failure before continuing.
+2. If state is absent or stale, call `monaiq_journal init` and apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`. Verify that `.monaiq/state.json`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, and `.monaiq/CHECKPOINTS` all exist after application; if any are missing, report the failure before continuing.
 3. Call `skill_started` only for a new user-visible journey, stale or missing state recovery, or a materially different specialist handoff that lacks a current state packet.
 4. Use `save_checkpoint` for every `CHECKPOINT-*` prompt/result pair, then apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`. Verify the expected `.monaiq/CHECKPOINTS/*.md` file exists before claiming the checkpoint is recorded.
 5. Use `update_checklist_progress`, `record_file_changes`, `record_validation_failure`, and journal append actions only with evidence-backed, no-secret summaries. Coalesce routine route, decision, changed-path, checklist, and handoff updates into milestone-sized writes.
@@ -51,7 +51,7 @@ Provides `.monaiq/STATE.md` as the compact resume/control packet, `.monaiq/JOURN
 </workflow>
 
 <journal-contract>
-Maintain a `.monaiq/` folder at the consumer project root while Monaiq skills guide implementation. The canonical layout is exactly `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/CHECKPOINTS/*.md`, and optional non-secret `.monaiq/config.json`. This is the optional non-secret .monaiq/config.json slot for local, non-credential configuration hints only.
+Maintain a `.monaiq/` folder at the consumer project root while Monaiq skills guide implementation. The canonical layout is exactly `.monaiq/state.json`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/CHECKPOINTS/*.md`, and optional non-secret `.monaiq/config.json`. This is the optional non-secret .monaiq/config.json slot for local, non-credential configuration hints only.
 
 Read `ROUTING-MAP.md` and `maintain-implementation-journal.md` as the first shared contract sources before a skill invents local route, checkpoint, or resume vocabulary. `ROUTING-MAP.md` owns shared journey vocabulary and route packet phase boundaries; `maintain-implementation-journal.md` owns checkpoint anatomy, approval/result recording, and journal state transitions.
 
@@ -77,7 +77,7 @@ Calling `monaiq_journal` is incomplete until the caller applies and verifies the
 
 For every `monaiq_journal` response:
 1. Inspect `fileOperations` before continuing.
-2. You must validate each fileOperations path against the `.monaiq` allowlist: `.monaiq/`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/config.json`, `.monaiq/CHECKPOINTS`, and `.monaiq/CHECKPOINTS/*.md`.
+2. You must validate each fileOperations path against the `.monaiq` allowlist: `.monaiq/`, `.monaiq/state.json`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/config.json`, `.monaiq/CHECKPOINTS`, and `.monaiq/CHECKPOINTS/*.md`.
 3. Apply only supported operation kinds: `ensureDirectory`, `writeFile`, and `appendFile`.
 4. Resolve paths under the consumer project root and never outside it.
 5. You must verify .monaiq/STATE.md exists when state is initialized or updated.
@@ -101,7 +101,7 @@ Do not use checkpointName; the hosted parser reads checkpoint.
 </operation-application-protocol>
 
 <state-detection>
-At Step 1 of a Monaiq journey or stale resume, call `monaiq_journal get_state`. If no journal exists, call `monaiq_journal init`, apply the returned file operations, then call `skill_started`. If a previous Monaiq skill in the same turn handed off a fresh state packet, reuse it instead of calling `get_state` again.
+At Step 1 of a Monaiq journey or stale resume, read `.monaiq/state.json` and call `monaiq_journal get_state` with its parsed object as `frontmatter`. The hosted tool cannot read the project's files: `get_state` without `frontmatter` answers `stateSupplied: false`, never a true "no resume". If `state.json` is absent but `.monaiq/STATE.md` exists (a journal written before `state.json` was applied), parse STATE.md's YAML header into the same fields and pass that instead; the next state-changing action writes `state.json`. Every state-changing action (`skill_started`, `skill_completed`, `save_checkpoint`, `record_*`, `update_checklist_progress`) also takes the current `frontmatter`, so the tool updates state rather than starting it over. If no journal exists, call `monaiq_journal init`, apply the returned file operations, then call `skill_started`. If a previous Monaiq skill in the same turn handed off a fresh state packet, reuse it instead of calling `get_state` again.
 
 If state exists, read the bounded resume packet source. `STATE.md` includes current skill/step, scenario, route packet summary, last checkpoint, last activity, open todo/question/blocker/validation status, recent changed areas, and explicit next action. When `currentSkill` is set, summarize the current skill, current step, scenario, route packet summary, last checkpoint, open todos, open questions, validation status, blockers, recent changed areas, next action, and recent activity before continuing.
 </state-detection>
@@ -139,7 +139,7 @@ Do not place raw ApiKeys, EncodedCredential values, JWTs, Stripe keys, or secret
 </credential-safety>
 
 <file-operation-contract>
-`monaiq_journal` is deterministic C# MCP/file-operation logic. It does not write arbitrary server filesystem paths, does not add a local transport, and does not operate outside `.monaiq/`. The calling agent applies returned operations locally after validating they target `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/CHECKPOINTS/*.md`, or `.monaiq/config.json`.
+`monaiq_journal` is deterministic C# MCP/file-operation logic. It does not write arbitrary server filesystem paths, does not add a local transport, and does not operate outside `.monaiq/`. The calling agent applies returned operations locally after validating they target `.monaiq/state.json`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/CHECKPOINTS/*.md`, or `.monaiq/config.json`.
 
 Do not add Semantic Kernel, Agent Framework, OpenAI, model calls, model-generated summarization, or hidden LLM orchestration inside `monaiq_journal`. The outer host LLM interprets tool responses.
 </file-operation-contract>

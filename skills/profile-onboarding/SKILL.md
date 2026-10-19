@@ -85,6 +85,8 @@ Call the `profile` tool with `startStep=1` to view the reseller profile.
 
 The `IssuerClientId` is the primary identifier for the reseller account. It is used as the `IssuerClientId` parameter in checkout requests and appears in license metadata.
 
+**Identity is per environment.** One person is a different seller account in each Monaiq environment (production, UAT), and every product, offering and feature id differs between them; an environment reset changes them all. Record the `IssuerClientId` and catalog ids under the environment `profile` names in its `environment` field (`production` or `uat`), never as one value for all environments. Do not copy an id from one environment into another's configuration.
+
 ## Platform Standing
 
 `profile` step 1 returns a `platformPlan` block alongside the status fields. Accepted terms and `ResellerStatus = Enabled` establish that the account IS a seller; `platformPlan` establishes whether Monaiq will let it SELL. They are two different facts and an account can hold the first without the second.

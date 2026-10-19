@@ -124,7 +124,7 @@ When a `monaiq_journal` call returns a `fileOperations` array, the calling agent
 3. After applying all operations, verify each `writeFile` path exists on disk.
 4. If any write cannot be confirmed, report the failure immediately and do not continue the skill workflow.
 
-Validate every path against the `.monaiq` allowlist before applying: `.monaiq/`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/config.json`, `.monaiq/CHECKPOINTS`, and `.monaiq/CHECKPOINTS/*.md`. Reject operations that target paths outside this allowlist.
+Validate every path against the `.monaiq` allowlist before applying: `.monaiq/`, `.monaiq/state.json`, `.monaiq/STATE.md`, `.monaiq/JOURNAL.md`, `.monaiq/config.json`, `.monaiq/CHECKPOINTS`, and `.monaiq/CHECKPOINTS/*.md`. Reject operations that target paths outside this allowlist.
 
 ## Host-Native Ask Pattern
 
