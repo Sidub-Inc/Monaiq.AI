@@ -54,7 +54,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 </process_steps>
 
 <resume-mode>
-<!-- Note: Resume Mode is now an executable pre-flight gate in <process_steps> step 1. This section provides supplementary guidance for the Resume route. -->
+<!-- Note: Resume Mode runs as the pre-flight gate in <process_steps> step 1. This section provides supplementary guidance for the Resume route. -->
 When `.monaiq/STATE.md` exists, enter Resume Mode before new intake. Render a Status Summary using `_shared/response-patterns.md`: current gate, last checkpoint, open blockers/questions, backend summary (profile, products, offerings, SDK), and one primary next skill recommendation. Only present 1-2 alternatives when the route is genuinely ambiguous. Do not re-ask questions already answered by the route packet, journal evidence, or backend facts.
 </resume-mode>
 
@@ -89,7 +89,7 @@ When users describe what they want using everyday language, map their terms to M
 | "feature flag" / "premium feature" | ProductAccessFeature | Gated by FeatureKey |
 | "rate limit" / "calls per minute" / "burst limit" | ProductRateLimitFeature | A cap per rolling time window inside each runtime |
 | "monthly quota" / "N per month" / "included units" / "allowance" | ProductQuotaFeature | So many uses per billing period, counted by the platform across every runtime |
-| "pricing tier" / "plan" | ProductOffering | Bundles features at a price point |
+| "offering" (also said as "pricing tier" or "plan") | ProductOffering | Bundles features at a price point. Say "offering" back to the user; "plan" is reserved for their Monaiq plan |
 | "product" / "app" / "software" | Product | The scope boundary for all features and offerings |
 
 Use this glossary when interpreting user requests throughout the onboarding flow. Translate user vocabulary into domain terms before calling tools.
@@ -194,7 +194,7 @@ Present two options:
 
 **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **onboarding → catalog**. Evidence sources, in priority order: route-packet handoff from broad intake, `analyze-codebase` results (invoke when reachable codebase + no prior analysis), journal decisions, conversation cues, `monaiq://patterns/scenarios`. Recommendation precedes evidence in every reply.
 
-**Interaction 1 — starter feature set.** Recommend a starter feature set inferred from `analyze-codebase` (or the prior analysis on the route packet/journal). The recommendation is the default; the host-native question lets the user approve, refine features, refine pricing, or pause to inspect the analysis. Map binary capabilities to `ProductAccessFeature` and metered capabilities to `ProductRateLimitFeature`. Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` when the user advances to catalog creation.
+**Interaction 1 — starter feature set.** Recommend a starter feature set inferred from `analyze-codebase` (or the prior analysis on the route packet/journal). The recommendation is the default; the host-native question lets the user approve, refine features, refine pricing, or pause to inspect the analysis. Map binary capabilities to `ProductAccessFeature`, per-window throughput caps to `ProductRateLimitFeature`, and so-many-uses-per-billing-period capabilities to `ProductQuotaFeature`. Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` when the user advances to catalog creation.
 
 **Interaction 2 — starter pricing model.** Recommend one pricing model (Free + Trial + Subscription | Perpetual | Usage-based) tied to the inferred capability mix and app type. The recommendation is the default; the host-native question lets the user approve, swap models, refine tiers, or hand off to `design-monetization` for deeper pricing work. Confirm via `CHECKPOINT-PRICING-APPROVAL` when handing off, or `CHECKPOINT-PRE-CATALOG-MUTATION` when applying inline.
 

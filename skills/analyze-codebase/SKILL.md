@@ -1,6 +1,6 @@
 ---
 name: analyze-codebase
-description: "Use when: analyzing an existing codebase to identify licensable capabilities, premium features, API quotas, exports, integrations, or monetization candidates; classifies findings as access gates or rate limits."
+description: "Use when: analyzing an existing codebase to identify licensable capabilities, premium features, API quotas, exports, integrations, or monetization candidates; classifies findings as access gates, rate limits, or allowances."
 agent: monaiq
 auto-invoke:
   - "User wants to identify what capabilities in their app could be licensed or monetized"
@@ -27,7 +27,7 @@ If invoked without upstream context, performs full project scan.
 
 <output-context>
 Provides to scenario-advisor:
-- capabilities: [{ name, type: "access" | "ratelimit", sourceFile, reason, suggestedFeatureKey }]
+- capabilities: [{ name, type: "access" | "ratelimit" | "quota", sourceFile, reason, suggestedFeatureKey }]
 - techStack: detected technology stack (e.g., "React + Express", ".NET 8 Web API")
 
 Discovery chain: analyze-codebase [capabilities] → scenario-advisor [selectedScenario] → design-monetization [pricingPlan] → manage-catalog

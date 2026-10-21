@@ -1,11 +1,11 @@
 ---
 name: design-monetization
-description: "Use when: designing pricing strategy, tiers, subscriptions, trials, perpetual licenses, usage-based billing, or catalog-ready offering plans; does not create catalog entities."
+description: "Use when: designing pricing strategy, tiers, subscriptions, trials, perpetual licenses, usage-based billing, or catalog-ready offerings; does not create catalog entities."
 agent: monaiq
 auto-invoke:
   - "User wants to design pricing tiers or a monetization strategy for their product"
   - "User asks 'how should I price this' or 'subscription vs perpetual' or 'what pricing model should I use'"
-  - "User wants help structuring pricing plans, billing intervals, or tier definitions"
+  - "User wants help structuring offerings, billing schedules, or tier definitions"
   - "User mentions pricing confusion, pricing strategy, or monetization approach"
 tags: [strategy, pricing, monetization, tiers, design]
 category: strategy
@@ -78,9 +78,11 @@ Using pricing patterns from `monaiq://patterns/pricing`, propose a complete tier
 
 | Tier | Name | License Type | Price | Interval | Features Included |
 |------|------|-------------|-------|----------|-------------------|
-| 1 | [e.g., Free] | Subscription | $0 | 1 Month | [list with access/rate-limit/allowance values] |
+| 1 | [e.g., Free] | Subscription | $0 USD | 1 Month | [list with access/rate-limit/allowance values] |
 | 2 | [e.g., Pro] | Subscription | $X | 1 Month | [list with access/rate-limit/allowance values] |
 | 3 | [e.g., Enterprise] | Subscription | $Y | 1 Month | [list with access/rate-limit/allowance values] |
+
+Every priced tier, $0 included, names its currency: `PricingValidation` refuses a `BaseRate` (even 0) without a `Currency`. A Trial tier carries no price and no currency; its length is the platform trial length (7 days, from `LicenseTerms.TrialLengthDays`).
 
 For each feature in each tier, specify:
 - Feature flags (Access features): `Allowed` or `Denied`
@@ -88,9 +90,7 @@ For each feature in each tier, specify:
 - Allowances (Quota features): uses per billing period (e.g., "500 exports per month") — always a positive number; an uncapped capability is an access feature. Carry forward the value-path decisions from `analyze-codebase` (§ Trace Value Paths); if none were recorded, ask which other surfaces return the same value before fixing the number, because an unmetered path makes the allowance meaningless
 - Per-use price (optional): the feature offering's `Rate`, billed on every reported use of a Subscription license
 
-<!-- SEM-01-stopgap -->
 > **Unlimited tiers.** When calling the `feature_offering` MCP tool, set both `RateLimit` and `SampleSeconds` to the string `"unlimited"` for an uncapped assignment. The tool maps that input to the domain's zero-as-unlimited representation internally. Paid capped tiers set explicit positive values (e.g. `RateLimit = 1000` with `SampleSeconds = 3600` for 1000/hour).
-<!-- /SEM-01-stopgap -->
 
 Explain the rationale: why this many tiers, why these price points relative to each other, and which pricing pattern from `monaiq://patterns/pricing` this follows.
 

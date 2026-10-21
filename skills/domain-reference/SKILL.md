@@ -83,7 +83,7 @@ Use the fetched resources as internal context to answer the user's specific doma
 | Question Type | Key Entities | Critical Fields |
 |--------------|-------------|-----------------|
 | "What is a FeatureKey?" | ProductFeature, FeatureOffering, LicenseFeature | `FeatureKey` — the linking field across catalog and runtime |
-| "How do features work?" | ProductAccessFeature, ProductRateLimitFeature | Feature flags (Access) and usage limits (RateLimit) — polymorphic types with distinct assertion classes |
+| "How do features work?" | ProductAccessFeature, ProductRateLimitFeature, ProductQuotaFeature | Feature flags (Access), usage limits (RateLimit) and allowances (Quota) — polymorphic types with distinct assertion classes |
 | "What's the difference between offerings and licenses?" | ProductOffering, License | Pricing tier (Offering) = pricing template, License = the purchase issued from it |
 | "What's the difference between a license and a seat?" | License, Seat | License = the purchase (classification, term, pricing, features); Seat = one unit of it, with its own license codes |
 | "How does checkout connect to licensing?" | CheckoutRequest, License, Seat, EncodedCredential | CorrelationId flow, credential provisioning per seat |

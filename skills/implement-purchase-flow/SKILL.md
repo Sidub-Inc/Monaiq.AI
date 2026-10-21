@@ -65,11 +65,11 @@ For `CHECKPOINT-CHECKOUT-ARCHITECTURE`, `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, `C
 <experience-contract>
 ## Purchase Experience Contract
 
-Design purchase UI around the host app's job, not a universal Monaiq screen. A full license page or purchase page is appropriate when the user is comparing plans, managing billing, or intentionally reviewing account state; a compact feature-level upsell is appropriate beside a locked action when the user already understands the task and needs the shortest trustworthy upgrade route. In both cases, keep the experience host-native, calm, task-focused, and persuasive without turning the application into a marketing page.
+Design purchase UI around the host app's job, not a universal Monaiq screen. A full license page or purchase page is appropriate when the user is comparing offerings, managing billing, or intentionally reviewing account state; a compact feature-level upsell is appropriate beside a locked action when the user already understands the task and needs the shortest trustworthy upgrade route. In both cases, keep the experience host-native, calm, task-focused, and persuasive without turning the application into a marketing page.
 
-Every purchase surface must explain the current license state, the target offering, included features, limits, price, and fit in business-readable language. Offer comparison surfaces should help the user choose confidently by showing plan differences, included features, quota or usage limits, price, and who each plan is for without leading with technical licensing vocabulary. Upgrade copy must explain the current-to-target upgrade path and what value is gained.
+Every purchase surface must explain the current license state, the target offering, included features, limits, price, and fit in business-readable language. Offer comparison surfaces should help the user choose confidently by showing offering differences, included features, quota or usage limits, price, and who each offering is for without leading with technical licensing vocabulary. Upgrade copy must explain the current-to-target upgrade path and what value is gained.
 
-Before direct checkout, require reliable email, customer identity, and offering context. Customer email is the purchase identity used for Stripe pre-fill, license delivery, and payment follow-up; if the app cannot provide a reliable email, pause for a host-native question or route to identity/profile work before checkout. Direct checkout from a compact upsell is allowed only when the customer, reliable email, target offering, success path, and recovery path are known.
+Before direct checkout, require customer identity and offering context. On the buyer-bearer path the buyer's own sign-in is the identity, and no email is collected. On the key path, also require a reliable email: the customer email is the purchase identity used for Stripe pre-fill, license delivery, and payment follow-up; if the app cannot provide a reliable email, pause for a host-native question or route to identity/profile work before checkout. Direct checkout from a compact upsell is allowed only when the customer, target offering, success path, and recovery path are known, plus a reliable email on the key path.
 
 After checkout completes, refresh license state, read the current entitlement snapshot, show newly unlocked features or the current entitlement state, and provide the next useful action. Cover loading, available, locked, near-limit, over-limit, expired, success, misconfigured, and recovery states so the user never lands in a vague purchased-but-still-blocked experience.
 
@@ -84,7 +84,7 @@ Before UI code changes, present `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT` with a summ
 
 - SDK not integrated -> route to `implement-licensing` first.
 - No offerings exist -> route to `manage-catalog` to create offerings.
-- Offerings exist but all are Draft -> warn that offerings need to be Public for checkout.
+- Offerings exist but all are Draft -> warn that offerings need to be Public or Private for checkout.
 - Existing checkout code found -> show current implementation and offer modifications.
 
 ## Discovery Reference
@@ -118,7 +118,7 @@ Fetch `monaiq://platforms/api-surface/{platform}` via the MCP `resources/read` o
 
 ## Step 2: Backend Integration
 
-Create a checkout by calling the SDK's purchase client (buyer-bearer path) or checkout service (key path). The request carries the offering ID, the reseller identifier (`IssuerClientId`), the correlation ID, an optional seat quantity (1 to 100), return URLs and — on the key path only — the customer email. The response carries a redirect URL for a paid offering. For a free / trial offering there is none: on the buyer-bearer path it auto-completes; on the key path it carries a `ClaimUrl` (below).
+Create a checkout by calling the SDK's purchase client (buyer-bearer path) or checkout service (key path). The request carries the offering ID, the seller identifier (`IssuerClientId`), the correlation ID, an optional seat quantity (1 to 100), return URLs and — on the key path only — the customer email. The response carries a redirect URL for a paid offering. For a free / trial offering there is none: on the buyer-bearer path it auto-completes; on the key path it carries a `ClaimUrl` (below).
 
 For the platform-specific checkout-service type, request/response shapes, and invocation pattern:
 
@@ -134,18 +134,30 @@ Fetch `monaiq://config/endpoints` via the MCP `resources/read` operation or `fet
 
 **Security notes (platform-neutral):**
 - Never expose the `ApiKey` to frontend code or ship it in an app the buyer runs — distributed apps use the buyer-bearer path, browsers proxy through your backend.
-- `IssuerClientId` identifies your reseller account — obtained from the `profile` tool. The `ApiKey` (key path) is revealed to owners of the account only.
+- `IssuerClientId` identifies your seller account — obtained from the `profile` tool. The `ApiKey` (key path) is revealed to owners of the account only.
 - Use HTTPS for every success / cancel URL.
 
 **Key path, free offering, typed address:** the create response may carry a `ClaimUrl`. When it
 does, nothing has been provisioned yet — the address names the buyer but does not prove them.
 Redirect the buyer to the link now, in the same browser; never make them wait for an email (the
-same link is emailed only as a fallback for a buyer who closed the tab). Set `ReturnUrl`: they
+same link is emailed only as a fallback for a buyer who closed the tab). A buyer who presses your
+button again inside the seven days gets the same session, a new `ClaimUrl` and the email again;
+every link issued for the offer keeps working until it is accepted, so a retry never kills the
+one already in their mailbox. Set `ReturnUrl`: they
 confirm, prove the address with a one-time code, and land on `ReturnUrl?session_id=…`, where one
 result read is enough. Without a `ReturnUrl`, keep polling: the result reads pending until the
 buyer confirms, then completed with the credential, or failed with `Claim expired.` once the
 seven-day window lapses. Do not add an "awaiting claim" status of your own;
 the status vocabulary is unchanged.
+
+**Buyer already signed in to your app:** if your app signs the buyer in with OpenID Connect before
+the sale, send their ID token as `BuyerIdToken` on the same request. The claim page then shows one
+confirm and no one-time code. It needs the seller's issuer registered first, under Account settings
+→ Buyer sign-in in the portal: the token's `iss` exactly, and your app's client ID (`aud`). Request
+the `email` scope; the token's `email` must be the customer email. A token that is expired, from
+another issuer, for another address or badly signed is ignored, never an error: the buyer gets the
+one-time code as before. The proof is honoured for one hour from the token's `iat`. Never send an
+access token or a token minted for a different app.
 
 ## Step 3: Success Handling
 
@@ -153,7 +165,7 @@ After the user completes Stripe Checkout, retrieve the result using the session 
 
 Persist the credential against the user identified by `CorrelationId` — this credential is what the licensing SDK uses at runtime.
 
-Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the reseller profile. The value belongs to the seat just bought: it carries a seat-scoped runtime token, authorizes and meters that one seat, and the buyer can revoke it from their seat page. A purchase of more than one seat returns no credential at completion — issue one per seat as it is assigned. Store the whole string as issued — never split it, never decode the token inside it, never log it.
+Purchased `EncodedCredential` values come from checkout-result retrieval or application storage, not the seller profile. The value belongs to the seat just bought: it carries a seat-scoped runtime token, authorizes and meters that one seat, and the buyer can revoke it from their seat page. A purchase of more than one seat returns no credential at completion — issue one per seat as it is assigned. Store the whole string as issued — never split it, never decode the token inside it, never log it.
 
 For the platform-specific result type and retrieval call pattern:
 
@@ -168,7 +180,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 Once the credential is persisted, **refresh the client and read current state** so the rest of the app
 sees the new entitlements without a full reload:
 
-- **React / Node:** `await client.refresh({ ...client.getConfig(), encodedCredential }); const state = await client.getState();`
+- **JavaScript SDK (React and Node):** `await client.refresh({ ...client.getConfig(), encodedCredential }); const state = await client.getState();`
 - **.NET:** `var state = await provider.GetState(serviceReference, context);`
 
 Wire these two calls into whatever success-callback shape your app already uses — the Stripe webhook
@@ -221,7 +233,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 ## Related Resources
 
 - `monaiq://platforms/api-surface/dotnet` — .NET checkout service, request/result types, provider interface.
-- `monaiq://platforms/api-surface/react` — React client methods, provider component, context-hook signatures.
+- `monaiq://platforms/api-surface/react` — JavaScript SDK methods for React, provider component, context-hook signatures.
 - `monaiq://platforms/manifest/dotnet` — Full machine-readable .NET platform manifest, including post-purchase state patterns.
 - `monaiq://platforms/manifest/react` — Full machine-readable React platform manifest, including post-purchase refresh patterns.
 - `monaiq://platforms/pitfalls/dotnet` — .NET pitfalls (DI lifetime, credential persistence).
@@ -229,7 +241,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 - `monaiq://docs/anti-patterns/dotnet` — .NET checkout and license-handling anti-patterns.
 - `monaiq://docs/anti-patterns/react` — React checkout and license-handling anti-patterns.
 - `monaiq://sdk/dotnet/setup` — .NET SDK wiring narrative.
-- `monaiq://sdk/react/setup` — React SDK wiring narrative.
+- `monaiq://sdk/react/setup` — JavaScript SDK wiring narrative for React.
 - `monaiq://config/endpoints` — Checkout/licensing endpoint base URLs.
 - `monaiq://domain/model` — Offering, license, and checkout-session entity shapes.
 

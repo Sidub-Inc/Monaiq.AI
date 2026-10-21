@@ -2,7 +2,7 @@
 
 ## Skill Layout Contract
 
-Monaiq skills should follow the same readable command shape as the GSD skills while keeping Monaiq's route, journal, checkpoint, and evidence requirements explicit.
+Monaiq skills share one readable command shape, and each keeps Monaiq's route, journal, checkpoint, and evidence requirements explicit.
 
 Monaiq guidance is distributed to Claude, GitHub Copilot / VS Code, and Codex runtimes. Shared guidance must therefore describe behavior in target-host terms instead of assuming one runtime's tool names apply everywhere.
 
@@ -118,9 +118,9 @@ When a `monaiq_journal` call returns a `fileOperations` array, the calling agent
 
 1. Receive the `fileOperations` array from the `monaiq_journal` tool response.
 2. For each operation in the array, in order:
-   - If `type == "ensureDirectory"`: ensure the directory at `path` exists — create it if it does not exist.
-   - If `type == "writeFile"`: create or overwrite the file at `path` with the value of `content`.
-   - If `type == "appendFile"`: append the value of `content` to the file at `path`, creating it if absent.
+   - If `kind == "ensureDirectory"`: ensure the directory at `path` exists — create it if it does not exist.
+   - If `kind == "writeFile"`: create or overwrite the file at `path` with the value of `content`.
+   - If `kind == "appendFile"`: append the value of `content` to the file at `path`, creating it if absent.
 3. After applying all operations, verify each `writeFile` path exists on disk.
 4. If any write cannot be confirmed, report the failure immediately and do not continue the skill workflow.
 

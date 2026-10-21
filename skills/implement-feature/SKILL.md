@@ -77,15 +77,15 @@ Use host-native UI quality: compact, accessible, responsive, aligned with the so
 <reference>
 ## Feature Discovery Reference
 
-Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit and Quota (allowance) features require feature retrieval, consumption recording, and assertion. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
+Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit features require feature retrieval, consumption recording, and assertion; Quota (allowance) features require feature retrieval and use recording, which throws for a use the period cannot cover. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
 
 ## Feature-Type Decision Table
 
 | Aspect | Feature Flag (Access) | Usage Limit (RateLimit) | Allowance (Quota) |
 |--------|----------------------|-------------------------|-------------------|
-| Pattern | Assert → allowed/denied | Get feature → record consumption → assert (throws over the limit) | Get feature → record use → assert |
+| Pattern | Assert → allowed/denied | Get feature → record consumption → assert (throws over the limit) | Get feature → record use (throws when the period cannot cover it) |
 | Use case | Premium content, feature flags, capability toggles | API rate limits, burst protection — a cap per rolling window inside each runtime | Monthly exports, included units — so many uses per billing period, counted by the platform across every runtime of a seat |
-| Cardinality | One assertion per check | Multi-step: retrieve → record → assert | Multi-step: retrieve → record → assert |
+| Cardinality | One assertion per check | Multi-step: retrieve → record → assert | Multi-step: retrieve → record; optional check before the action |
 
 ## Implementation Reference
 
@@ -101,9 +101,7 @@ Resolve platform-specific assertion types, call sequence, and runtime wiring thr
 
 Use when: usage must be metered and bounded inside each runtime (API rate limits, burst protection, consumption-based features); so many uses per billing period is an allowance, below. Pattern is always multi-step — retrieve the feature record, record consumption, then assert whether the limit is still respected.
 
-<!-- SEM-01-stopgap -->
 > **Unlimited assignments.** In the domain model, `RateLimit = 0` represents an unlimited entitlement. When creating or updating a rate-limit assignment through the `feature_offering` MCP tool, send both `RateLimit` and `SampleSeconds` as the string `"unlimited"`; the tool maps that to the internal zero representation. Non-zero capped values must be positive integers for both fields.
-<!-- /SEM-01-stopgap -->
 
 ### Allowance Check (Quota — Uses per Billing Period)
 
@@ -141,13 +139,13 @@ Build-and-verify guidance is delivered by `implement_product_feature` step 2 via
 - `monaiq://domain/model` — Entity relationships and feature-type hierarchy.
 - `monaiq://domain/namespaces` — Authoritative namespace-to-type mappings.
 - `monaiq://platforms/api-surface/dotnet` — .NET assertion types, method signatures, semantics.
-- `monaiq://platforms/api-surface/react` — React assertion types, hook signatures, semantics.
+- `monaiq://platforms/api-surface/react` — React assertion types, client method signatures, semantics.
 - `monaiq://platforms/pitfalls/dotnet` — .NET known issues.
-- `monaiq://platforms/pitfalls/react` — React known issues (provider remount, async hook reuse).
+- `monaiq://platforms/pitfalls/react` — React known issues (provider remount, thrown errors, synchronous assertLicense).
 - `monaiq://docs/anti-patterns/dotnet` — .NET anti-patterns for license checks and rate-limit enforcement.
 - `monaiq://docs/anti-patterns/react` — React anti-patterns for license checks and rate-limit enforcement.
 - `monaiq://sdk/dotnet/setup` — .NET SDK runtime wiring narrative.
-- `monaiq://sdk/react/setup` — React SDK runtime wiring narrative.
+- `monaiq://sdk/react/setup` — JavaScript SDK runtime wiring narrative for React.
 </related>
 
 <error-recovery>

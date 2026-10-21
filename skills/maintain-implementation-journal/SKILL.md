@@ -107,7 +107,7 @@ If state exists, read the bounded resume packet source. `STATE.md` includes curr
 </state-detection>
 
 <checkpoint-protocol>
-When a step declares a `CHECKPOINT-*` checkpoint, call `monaiq_journal save_checkpoint` with the checkpoint name, summary, question, intended change, user/business impact, affected entities/files/areas, assumptions, secret policy, risks, validation plan, and options. The default sign-off choices are exactly: `approve automatic implementation`, `show a reviewable plan first`, `revise scope`, `stop`. Present the returned envelope through the host-native ask mechanism, such as `vscode_askQuestions`, Claude `ask`, or Codex `AskUserQuestion`.
+When a step declares a `CHECKPOINT-*` checkpoint, call `monaiq_journal save_checkpoint` with the checkpoint name, summary, question, intended change, user/business impact, affected entities/files/areas, assumptions, secret policy, risks, validation plan, and options. The default sign-off choices are exactly: `approve automatic implementation`, `show a reviewable plan first`, `revise scope`, `stop`. Present the returned envelope through the host-native ask mechanism (`_shared/protocols.md` § Host-Native Ask Pattern): `vscode_askQuestions` in VS Code / GitHub Copilot, `AskUserQuestion` in Claude Code, or numbered options in chat on Codex.
 
 Checkpoint prompts must be complete before the user is asked to approve consequential work. Present the business-readable summary, question, intended change, user/business impact, affected entities/files/areas, assumptions, secret policy, risks, validation plan, and options; keep technical identifiers available in compact backing fields rather than making them the primary user-facing explanation.
 
@@ -133,7 +133,7 @@ backend/catalog changes after completed implementation can reopen journey work a
 <credential-safety>
 `.monaiq/` is committed by default so teams and future agent sessions can understand the implementation journey. Opt-out via `.gitignore` is possible but is not the default.
 
-Credential safety is prose-only in this phase. Do not journal ApiKeys, EncodedCredential strings, JWT values, Stripe keys, PEM blocks, private keys, license credentials, user secrets, `.env` contents, or secret-bearing file contents. Mention paths and decisions, never raw credential values. This phase does not implement a server-side credential leak filter.
+Credential safety is the caller's rule to keep: `monaiq_journal` runs no server-side credential leak filter. Do not journal ApiKeys, EncodedCredential strings, JWT values, Stripe keys, PEM blocks, private keys, license credentials, user secrets, `.env` contents, or secret-bearing file contents. Mention paths and decisions, never raw credential values.
 
 Do not place raw ApiKeys, EncodedCredential values, JWTs, Stripe keys, or secret-bearing file contents in prompts, journals, checkpoint result payloads, plugin output, or generated guidance.
 </credential-safety>

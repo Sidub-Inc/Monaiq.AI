@@ -58,7 +58,7 @@ Direct skill invocation compatibility fallback: warn once, fetch the implementat
 
 ## Resume Scenario
 
-> **Note:** The Resume Scenario is now an executable step in `<process_steps>` above (step 1.5). This section provides supplementary context.
+> **Note:** The Resume Scenario runs as step 1.5 of `<process_steps>` above. This section provides supplementary context.
 
 Returning users with `.monaiq/STATE.md` skip broad re-intake. Render a status summary with current checklist gate, last checkpoint, open blockers/questions, backend summary (profile, products, offerings, SDK), and one primary next skill recommendation. Offer one or two alternatives only when backend facts and journal state make multiple routes plausible.
 
@@ -82,7 +82,7 @@ Clear specialist intent may bypass `getting-started` only with satisfied route a
 
 ## Tier Summary
 
-Every skill below declares `agent: monaiq` and an `auto-invoke:` block in its frontmatter, so all are model-invocable in every host. The "Primary Entry" column reflects routing **intent** \u2014 whether the skill is a top-of-funnel entry point or a deeper specialist that should normally be reached via the route packet from another skill. It does not disable model invocation.
+Every skill below declares `agent: monaiq` and an `auto-invoke:` block in its frontmatter, so all are model-invocable in every host. The "Primary Entry" column reflects routing **intent** — whether the skill is a top-of-funnel entry point or a deeper specialist that should normally be reached via the route packet from another skill. It does not disable model invocation.
 
 For the canonical skill section order, route-packet field names, direct-invocation contract, and tool-operation rules, see `_shared/protocols.md`.
 
@@ -190,6 +190,3 @@ The user has an integration issue. `troubleshoot-integration` is a direct Tier 1
 - [x] implement-purchase-flow — appears in: Catalog Setup, SDK Integration
 
 **11 user-facing specialist skills + 1 journal protocol skill = 12 total. Every chain starts from a Tier 1 entry point or a fresh resume packet, every skill declares `agent: monaiq`, and no skill relies on hidden model-invocation metadata to enforce routing.**
-
----
-*Validated: 2026-04-25*

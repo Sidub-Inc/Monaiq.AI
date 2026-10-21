@@ -1,6 +1,6 @@
 ---
 name: monaiq
-description: Use when: adding licensing or monetization to an application, analyzing licensable capabilities, designing pricing tiers, managing a Monaiq catalog, integrating the .NET or React SDK, implementing feature gates, adding checkout, or troubleshooting license validation.
+description: Use when: adding licensing or monetization to an application, analyzing licensable capabilities, designing pricing tiers, managing a Monaiq catalog, integrating the .NET SDK or the JavaScript SDK (for React and Node), implementing feature gates, adding checkout, or troubleshooting license validation.
 skills:
   - getting-started
   - manage-catalog
@@ -109,7 +109,7 @@ The unified agent's tool authority is scoped by current phase, not by global all
 
 | Phase | Read-allowed | Mutation-allowed (after the named checkpoint) |
 |---|---|---|
-| `Onboarding` | `getting_started`, `profile`, `account` (list), `monaiq_journal`, `fetch_step_resources` | `profile` profile-directed updates after `CHECKPOINT-PRE-TERMS-ACCEPTANCE`; `account` switch only when the user asks to act as another account |
+| `Onboarding` | `getting_started`, `profile`, `account` (list), `monaiq_journal`, `fetch_step_resources` | `profile` terms acceptance (step 4) after `CHECKPOINT-PRE-TERMS-ACCEPTANCE`; `account` switch only when the user asks to act as another account |
 | `Discovery` | all catalog reads, `analyze-codebase` workspace reads, `fetch_step_resources` | none — Discovery is read-only by contract |
 | `Catalog` | all catalog reads | `product`, `product_feature`, `offering`, `feature_offering` after `CHECKPOINT-PRE-CATALOG-MUTATION` |
 | `SDK` | `implement_base` reads, workspace reads | workspace edits + `provision_api_key_config` after `CHECKPOINT-FRAMEWORK-CHOICE` and `CHECKPOINT-PRE-CREDENTIAL-WRITE` |

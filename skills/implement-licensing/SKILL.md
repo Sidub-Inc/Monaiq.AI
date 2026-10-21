@@ -60,7 +60,7 @@ For `CHECKPOINT-CREDENTIAL-SOURCE`, `CHECKPOINT-PRE-BROWNFIELD-MIGRATION`, `CHEC
 </workflow>
 
 <reference>
-> Each `monaiq://...` URI below must be fetched through `fetch_step_resources` before the related code/config/business-logic edit. The repeated fetch lines exist by design \u2014 they are explicit cues for tool invocation across hosts. The closing "Related Resources" section is the consolidated index.
+> Each `monaiq://...` URI below must be fetched through `fetch_step_resources` before the related code/config/business-logic edit. The repeated fetch lines exist by design — they are explicit cues for tool invocation across hosts. The closing "Related Resources" section is the consolidated index.
 
 ## State Detection Reference
 
@@ -82,7 +82,7 @@ Before writing any code, determine how end-users will provide their license cred
 
 **Configuration-Based** — one license code stored in application settings covers the entire application. The SDK's built-in configuration-based credential resolver handles this automatically. For the exact configuration shape and resolver type names, resolve `monaiq://platforms/api-surface/{platform}`.
 
-**User-Managed** — each user/tenant provides their own credential at runtime. You must implement a custom credential-provider type that resolves credentials from your storage (user profile, tenant settings, etc.). For the authoritative provider interface / hook signature, resolve `monaiq://platforms/api-surface/{platform}`. Consider the `implement_purchase_flow` tool for embedded in-app purchases that provision credentials automatically. If you do not build an embedded purchase flow (e.g. a non-web/desktop/CLI app), end-users can self-serve at the reseller's public storefront `{portalUri}/marketplace/{IssuerClientId}` and paste the returned credential — self-serve storefront checkout, where the buyer verifies their email with a one-time code inline and there is no separate signup step (resolve `portalUri` from `monaiq://config/endpoints`).
+**User-Managed** — each user/tenant provides their own credential at runtime. You must implement a custom credential-provider type that resolves credentials from your storage (user profile, tenant settings, etc.). For the authoritative provider interface signature, resolve `monaiq://platforms/api-surface/{platform}`. Consider the `implement_purchase_flow` tool for embedded in-app purchases that provision credentials automatically. If you do not build an embedded purchase flow (e.g. a non-web/desktop/CLI app), end-users can self-serve at the seller's public storefront `{portalUri}/marketplace/{IssuerClientId}` and paste the returned credential — self-serve storefront checkout, where the buyer verifies their email with a one-time code inline and there is no separate signup step (resolve `portalUri` from `monaiq://config/endpoints`).
 
 ## Step 2: Install Packages
 
@@ -90,7 +90,7 @@ Install the SDK package for the target stack. For the installation command, pack
 
 Fetch `monaiq://sdk/{stack}/setup` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
-> **Note (.NET):** Requires Sidub.Platform 1.11.4+. Consumers using this version or later do not need any `<ExcludeAssets>` Metalama workaround — the Metalama build tool is no longer a transitive dependency (DEV-08 / RT-6 resolved in Sidub.Platform.Core).
+> **Note (.NET):** The SDK depends on Sidub.Platform 1.11.4, whose packages exclude the Metalama build and analyzer assets from consumers. Do not add an `<ExcludeAssets>` Metalama workaround.
 
 ## Step 3: Namespace Reference
 
@@ -136,7 +136,7 @@ For **User-Managed** credential source, register your custom credential-resolver
 
 Integrate the licensing service into your application's runtime.
 
-- For the platform-specific type signatures — the service interface (.NET) or hook (React) used to request authorization — resolve:
+- For the platform-specific type signatures — the service interface (.NET) or the `LicensingClient.getAuthorization` method (React) used to request authorization — resolve:
 
   Fetch `monaiq://platforms/api-surface/{platform}` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
@@ -175,7 +175,7 @@ Typical render patterns (implementer's choice, no SDK opinion):
 After completing the integration:
 
 1. Build the project — no compilation errors.
-2. Run the application and verify the SDK's authorization call returns a non-null result.
+2. Run the application and verify the SDK's authorization call returns an authorization. It throws on failure and never returns null.
 3. Check logs for any licensing configuration exception — this indicates incomplete credential fields.
 
 ## Related Tools
@@ -187,7 +187,7 @@ After completing the integration:
 ## Related Resources
 
 - `monaiq://sdk/dotnet/setup` — .NET SDK setup narrative.
-- `monaiq://sdk/react/setup` — React SDK setup narrative.
+- `monaiq://sdk/react/setup` — JavaScript SDK setup narrative for React.
 - `monaiq://platforms/api-surface/dotnet` — .NET method signatures and null semantics.
 - `monaiq://platforms/api-surface/react` — React method signatures and null semantics.
 - `monaiq://platforms/manifest/dotnet` — Full machine-readable .NET platform manifest.
@@ -204,7 +204,7 @@ After completing the integration:
 
 When state detection shows SDK is already integrated, offer these options:
 
-- **Credential recovery** — Re-read the completed checkout result or the application's credential store to recover the purchased EncodedCredential. A credential belongs to a SEAT, not to an account: the profile tool only returns reseller checkout credentials, and a credential that was never stored cannot be re-shown — it is displayed once at issue, so the owner issues a fresh one on their seat page and revokes the old one.
+- **Credential recovery** — Re-read the completed checkout result or the application's credential store to recover the purchased EncodedCredential. A credential belongs to a SEAT, not to an account: the profile tool only returns seller checkout credentials, and a credential that was never stored cannot be re-shown — it is displayed once at issue, so the owner issues a fresh one on their seat page and revokes the old one.
 - **Update service URIs** — Modify licensing configuration to point to different environments (staging, production). Resolve `monaiq://config/endpoints` for the current authoritative URIs.
 - **Switch credential source** — Migrate from configuration-based to user-managed credentials (or vice versa). Involves implementing or removing a custom credential resolver; resolve `monaiq://sdk/{stack}/setup` for the migration narrative.
 - **Verify integration** — Run a quick health check: confirm packages are installed, configuration is present, DI is registered, and a test authorization call succeeds.
@@ -236,7 +236,7 @@ For existing apps, prefer additive nullable changes that preserve current reads 
 
 Use approved local secret or configuration stores for app-wide credentials, tenant storage for tenant-level credential scope, and user/profile storage for user-level credential scope. Never place raw ApiKey, EncodedCredential, `.env`, user-secrets, or secret-bearing values in prompts, journals, docs, generated plugin output, or client-visible code/config. Use placeholders and resource-backed instructions instead.
 
-For checkout or license delivery, reliable email remains a prerequisite. If the existing user/customer/tenant table lacks a trustworthy email, pause before purchase-flow code and decide how the host app will collect or verify it.
+For key-path checkout, a reliable email is a prerequisite; the buyer-bearer path takes the buyer from their own sign-in. If the existing user/customer/tenant table lacks a trustworthy email, pause before purchase-flow code and decide how the host app will collect or verify it.
 
 For rate-limit defaults during migration, preserve unlimited and capped semantics. Do not accidentally introduce low capped limits while backfilling or assigning features; make quota, reset cadence, and recovery behavior explicit.
 
@@ -247,7 +247,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 
 <success_criteria>
 - Project builds without compilation errors after SDK integration.
-- The SDK's authorization call returns a non-null result at runtime.
+- The SDK's authorization call returns an authorization at runtime without throwing.
 - No licensing configuration exception in application logs.
 - Correct credential source pattern used (Configuration-Based or User-Managed).
 - All namespaces match the `monaiq://domain/namespaces` reference.

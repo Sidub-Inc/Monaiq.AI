@@ -71,15 +71,15 @@ Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` before any `product` / `product_fe
 Ask how the user wants to charge, or use `quickStartSpec.pricingChoice` if provided. When asking, invoke the **Host-Native Ask Pattern** (see `_shared/protocols.md` § Host-Native Ask Pattern) with the pricing options listed below as option labels. Block until the user responds.
 
 Present pricing options in plain language:
-- **"Free trial + paid subscription"** → Create a Trial offering ($0) + Subscription offering ($X/month). A Trial offering runs for the platform trial length (7 days — `LicenseTerms.TrialLengthDays`), which is a platform constant: `ProductOffering` has no per-offering trial-length field, so do not promise the user a different number.
+- **"Free trial + paid subscription"** → Create a Trial offering (no price and no currency) + Subscription offering ($X/month). A Trial offering runs for the platform trial length, 7 days, which comes from the platform constant `LicenseTerms.TrialLengthDays`: `ProductOffering` has no per-offering trial-length field, so do not promise the user a different number.
 - **"Just a subscription"** → Create a Subscription offering ($X/month)
 - **"One-time purchase"** → Create a Perpetual offering ($X one-time)
-- **"Free tier + paid tier"** → Create a free Subscription ($0/month) + paid Subscription ($X/month)
+- **"Free tier + paid tier"** → Create a free Subscription ($0/month, `BaseRate: 0` with `Currency: "USD"`, because a price of zero still needs a currency) + paid Subscription ($X/month)
 - **"Usage-based"** → Create a Subscription with usage limit values scaled per tier
 
 For each pricing tier (called an Offering in Monaiq), apply smart defaults:
 - Currency: `USD`
-- Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window — every trial license is minted for the platform trial length (7 days — `LicenseTerms.TrialLengthDays`)
+- Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window: every trial license is minted for the platform trial length, 7 days, from `LicenseTerms.TrialLengthDays`. A Trial carries no `BaseRate` and no `Currency`
 - Status: `Draft` (safe default — user publishes when ready)
 
 [CONFIRM] Execute tool calls: `offering` (create for each tier) → `feature_offering` (assign features to each offering).
@@ -117,7 +117,7 @@ Do not send an `Id` on any create: the server mints every catalog id and ignores
 When state detection shows everything already exists, offer these options:
 
 - **Update features**: Add new features to existing product, modify feature key, change feature type
-- **Modify offerings**: Change pricing, update billing interval, change license type (e.g., promote Trial to Subscription — called `LicenseClassification` in Monaiq)
+- **Modify offerings**: Change pricing, update billing schedule, change license type (e.g., promote Trial to Subscription — called `LicenseClassification` in Monaiq)
 - **Modify assignments**: Change feature values for a pricing tier — toggle access, adjust rate limits or allowances
 - **Add tier**: Create a new pricing tier (Offering) and assign features (common when adding a free or enterprise tier)
 - **View catalog**: Show full product → features → pricing tiers → feature assignments summary
