@@ -1,6 +1,6 @@
 {
   "name": "monaiq",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Add licensing, subscriptions, and feature gates to your .NET or JavaScript (React and Node) app - AI-guided SDK integration, pricing design, and catalog management.",
   "author": {
     "name": "Sidub Inc.",

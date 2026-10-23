@@ -5,7 +5,7 @@ Add licensing, subscriptions, and feature gates to your .NET or JavaScript (Reac
 > This repository is the **published distribution** of the Monaiq AI plugin, assembled and
 > mirrored here by Sidub's release pipeline. Do not edit it by hand - changes are overwritten on the next release.
 
-Version: `2.3.3` | License: MIT | Homepage: https://docs.monaiq.com
+Version: `2.3.4` | License: MIT | Homepage: https://docs.monaiq.com
 
 ## Install
 
