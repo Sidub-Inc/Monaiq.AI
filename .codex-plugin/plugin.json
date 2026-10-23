@@ -1,7 +1,7 @@
 {
   "name": "monaiq",
-  "version": "2.3.0",
-  "description": "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
+  "version": "2.3.3",
+  "description": "Add licensing, subscriptions, and feature gates to your .NET or JavaScript (React and Node) app - AI-guided SDK integration, pricing design, and catalog management.",
   "author": {
     "name": "Sidub Inc.",
     "url": "https://monaiq.com"
@@ -22,7 +22,9 @@
     "paywall",
     "rate-limit",
     "dotnet",
+    "javascript",
     "react",
+    "node",
     "stripe",
     "licensing-as-a-service"
   ],
@@ -31,7 +33,7 @@
   "interface": {
     "displayName": "Monaiq",
     "shortDescription": "Add licensing, subscriptions, and feature gates to your .NET or React app",
-    "longDescription": "Add licensing, subscriptions, and feature gates to your .NET or React app - AI-guided SDK integration, pricing design, and catalog management.",
+    "longDescription": "Add licensing, subscriptions, and feature gates to your .NET or JavaScript (React and Node) app - AI-guided SDK integration, pricing design, and catalog management.",
     "developerName": "Sidub Inc.",
     "category": "Productivity",
     "capabilities": [
