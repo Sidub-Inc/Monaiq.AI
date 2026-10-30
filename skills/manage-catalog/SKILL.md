@@ -43,7 +43,7 @@ For `CHECKPOINT-PRE-CATALOG-MUTATION`, `CHECKPOINT-PRE-PUBLISH-OFFERING`, and an
 5. Present the recommendation using `_shared/response-patterns.md` "Evidence Backing" plus the exact `product`, `product_feature`, `offering`, or `feature_offering` operations proposed. Every product, feature, offering, pricing, or assignment proposal is an evidence-backed catalog recommendation.
 6. Stop at `CHECKPOINT-PRE-CATALOG-MUTATION` before any `product`, `product_feature`, `offering`, or `feature_offering` create/update/delete call. Record the user's result before tool calls run.
 7. Execute catalog mutations in dependency order: product, features, offerings, feature assignments. Keep offerings in Draft unless the user explicitly approves publication through `CHECKPOINT-PRE-PUBLISH-OFFERING`.
-8. Perform mandatory read-back verification after create/update of paid-tier assignments: list `feature_offering` rows for each paid offering, verify intended `ServiceAccessLevel`, rate-limit or `Allowance` values, and stop on mismatches before claiming catalog completion.
+8. Perform mandatory read-back verification after create/update of paid-tier assignments: list `feature_offering` rows for each paid offering, verify intended `ServiceAccessLevel`, rate-limit, `Allowance` or `Limit` values, and stop on mismatches before claiming catalog completion.
 9. Coalesce changed catalog entities, read-back proof, checklist progress, preserved route boundaries, and `catalogSpec` handoff through `_shared/workflows/completion.md`. Call `update_checklist_progress` for catalog and offerings only after source skill, relevant MCP tool, canonical resources, and checkpoint/journal evidence prove the gate is complete before marking the checklist gate complete. Save `CHECKPOINT-SKILL-COMPLETE` with `proofOfDone` only when useful, apply returned operations using the **File Operation Application Protocol** in `_shared/protocols.md`, call `skill_completed` once, and hand off persisted `catalogSpec` plus `activePlatform`, `targetProject`, and `outOfScopePlatforms` to `implement-licensing`. Emit the **Next Step Signal**: `**Next:** Invoke \`implement-licensing\` — integrate the Monaiq SDK into your application to enforce licensing.`
 </workflow>
 
@@ -62,7 +62,7 @@ For `CHECKPOINT-PRE-CATALOG-MUTATION`, `CHECKPOINT-PRE-PUBLISH-OFFERING`, and an
 
 ### Interaction 1: starter product and features
 
-Recommend a starter product (name + derived code) and feature set inferred from upstream evidence. Map binary capabilities to `ProductAccessFeature`, per-window throughput caps to `ProductRateLimitFeature`, and so-many-uses-per-billing-period capabilities to `ProductQuotaFeature`; derive feature keys lowercase-hyphenated from the capability name. Present as the default; invoke the **Host-Native Ask Pattern** (see `_shared/protocols.md` § Host-Native Ask Pattern) with options: approve the starter catalog, refine features, refine the product name, or pause to inspect the source analysis. Block until the user responds.
+Recommend a starter product (name + derived code) and feature set inferred from upstream evidence. Map binary capabilities to `ProductAccessFeature`, per-window throughput caps to `ProductRateLimitFeature`, so-many-uses-per-billing-period capabilities to `ProductQuotaFeature`, and numbers the app holds to (projects, retention days, file size) to `ProductLimitFeature`; derive feature keys lowercase-hyphenated from the capability name. Present as the default; invoke the **Host-Native Ask Pattern** (see `_shared/protocols.md` § Host-Native Ask Pattern) with options: approve the starter catalog, refine features, refine the product name, or pause to inspect the source analysis. Block until the user responds.
 
 Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` before any `product` / `product_feature` create call. Smart defaults: Product Status = `Active`, feature key derived from name.
 
@@ -71,7 +71,7 @@ Confirm via `CHECKPOINT-PRE-CATALOG-MUTATION` before any `product` / `product_fe
 Ask how the user wants to charge, or use `quickStartSpec.pricingChoice` if provided. When asking, invoke the **Host-Native Ask Pattern** (see `_shared/protocols.md` § Host-Native Ask Pattern) with the pricing options listed below as option labels. Block until the user responds.
 
 Present pricing options in plain language:
-- **"Free trial + paid subscription"** → Create a Trial offering (no price and no currency) + Subscription offering ($X/month). A Trial offering runs for the platform trial length, 7 days, which comes from the platform constant `LicenseTerms.TrialLengthDays`: `ProductOffering` has no per-offering trial-length field, so do not promise the user a different number.
+- **"Free trial + paid subscription"** → Create a Trial offering (no price and no currency) + Subscription offering ($X/month). A Trial offering runs for the length the seller sets in `TrialDays` (1 to 90, required on a Trial; 7 days when a Trial is created without one), so ask the user how long and set it. A trial is once per account and one seat.
 - **"Just a subscription"** → Create a Subscription offering ($X/month)
 - **"One-time purchase"** → Create a Perpetual offering ($X one-time)
 - **"Free tier + paid tier"** → Create a free Subscription ($0/month, `BaseRate: 0` with `Currency: "USD"`, because a price of zero still needs a currency) + paid Subscription ($X/month)
@@ -79,14 +79,14 @@ Present pricing options in plain language:
 
 For each pricing tier (called an Offering in Monaiq), apply smart defaults:
 - Currency: `USD`
-- Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window: every trial license is minted for the platform trial length, 7 days, from `LicenseTerms.TrialLengthDays`. A Trial carries no `BaseRate` and no `Currency`
+- Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window: `TrialDays` does (required on a Trial; the default is 7 days when created without one). A Trial carries no `BaseRate` and no `Currency`
 - Status: `Draft` (safe default — user publishes when ready)
 
 [CONFIRM] Execute tool calls: `offering` (create for each tier) → `feature_offering` (assign features to each offering).
 
 Default assignment values:
-- Paid tiers: All feature flags (`ProductAccessFeature`) set to `Allowed`, rate limits (`ProductRateLimitFeature`) and allowances (`ProductQuotaFeature`) at user-specified or suggested values
-- Free/Trial tiers: Feature flags selectively `Allowed`/`Denied` based on user description, rate limits and allowances at reduced values
+- Paid tiers: All feature flags (`ProductAccessFeature`) set to `Allowed`, rate limits (`ProductRateLimitFeature`), allowances (`ProductQuotaFeature`) and limits (`ProductLimitFeature`) at user-specified or suggested values
+- Free/Trial tiers: Feature flags selectively `Allowed`/`Denied` based on user description, rate limits, allowances and limits at reduced values
 
 - Catalog identifiers (offering ids, product ids, feature keys) referenced in code MUST live in a constants module. Inline string literals are forbidden.
 
@@ -103,7 +103,9 @@ Default assignment values:
 
 For rate-limit features, both `SampleSeconds` and `RateLimit` are required (use matching `"unlimited"` strings or matching positive integers — asymmetric combinations are rejected).
 
-For allowance features, send `"__sidub_entityType": "ProductFeatureOffering.Quota"` with `Allowance` — a positive integer of uses per billing period. There is no unlimited allowance: compose an uncapped capability as an access feature instead.
+For allowance features, send `"__sidub_entityType": "ProductFeatureOffering.Quota"` with `Allowance` — the uses per billing period, 0 or more. An `Allowance` of 0 (or the string `"unlimited"`) is no cap: every use is counted and reported, and none is refused.
+
+For limit features, send `"__sidub_entityType": "ProductFeatureOffering.Limit"` with `Limit` — the number the app holds to, 0 or more, or `null` (or the string `"unlimited"`) for unlimited. A limit needs SDK 2.4.0 or later: an older .NET SDK (before 2.4.0) fails the whole authorization for a licence carrying a Limit, not just that feature.
 
 Do not send an `Id` on any create: the server mints every catalog id and ignores a supplied one. Read the id back from the create response.
 
@@ -118,7 +120,7 @@ When state detection shows everything already exists, offer these options:
 
 - **Update features**: Add new features to existing product, modify feature key, change feature type
 - **Modify offerings**: Change pricing, update billing schedule, change license type (e.g., promote Trial to Subscription — called `LicenseClassification` in Monaiq)
-- **Modify assignments**: Change feature values for a pricing tier — toggle access, adjust rate limits or allowances
+- **Modify assignments**: Change feature values for a pricing tier — toggle access, adjust rate limits, allowances or limits
 - **Add tier**: Create a new pricing tier (Offering) and assign features (common when adding a free or enterprise tier)
 - **View catalog**: Show full product → features → pricing tiers → feature assignments summary
 
@@ -132,7 +134,7 @@ When state detection shows everything already exists, offer these options:
 | Product creation fails | Tool returns error on `product` create | Retry once. On `AuthError`, ask the user to complete their MCP client's OAuth sign-in, then retry. |
 | Feature creation fails after product created | `product_feature` returns validation error | Product is safe — retry the feature creation with corrected input. List existing features first to avoid duplicates. |
 | Offering creation fails after features created | `offering` returns error | Product and features are safe. Retry offering creation. Check that LicenseClassification is valid (Trial, Subscription, or Perpetual). |
-| Feature assignment fails after offering created | `feature_offering` returns error | Offering exists but is incomplete. Retry assignment. Verify FeatureKey matches exactly and feature type matches assignment type (Access → ServiceAccessFeatureOffering, RateLimit → RateLimitFeatureOffering, Quota → QuotaFeatureOffering). |
+| Feature assignment fails after offering created | `feature_offering` returns error | Offering exists but is incomplete. Retry assignment. Verify FeatureKey matches exactly and feature type matches assignment type (Access → ServiceAccessFeatureOffering, RateLimit → RateLimitFeatureOffering, Quota → QuotaFeatureOffering, Limit → LimitFeatureOffering). |
 | Partial catalog state | Some entities created, process interrupted | Re-run state detection — the skill will resume from the last incomplete step. Already-created entities are preserved. |
 
 Creates are not deduplicated: the server mints a new id on every create, so a repeated `product` create makes a second product. List before creating, and pass an `idempotencyKey` on create/update/delete so a retried call within 5 minutes returns the cached response instead of executing again. Feature assignments can be updated in place.

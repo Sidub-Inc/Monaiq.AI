@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-description: "Use when: adding Monaiq feature gates, access checks, premium feature enforcement, rate-limit or allowance assertions, consumption recording, or license feature checks to an SDK-integrated app."
+description: "Use when: adding Monaiq feature gates, access checks, premium feature enforcement, rate-limit, allowance or limit assertions, consumption recording, or license feature checks to an SDK-integrated app."
 agent: monaiq
 auto-invoke:
   - "User wants to add feature gating to their application"
@@ -9,7 +9,7 @@ auto-invoke:
 tags: [sdk, features, licensing, entitlements, access, ratelimit]
 category: integration
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, product, product_feature, feature_offering, implement_product_feature, fetch_step_resources, monaiq_journal, mcp__plugin_monaiq_monaiq__product, mcp__plugin_monaiq_monaiq__product_feature, mcp__plugin_monaiq_monaiq__feature_offering, mcp__plugin_monaiq_monaiq__implement_product_feature, mcp__plugin_monaiq_monaiq__fetch_step_resources, mcp__plugin_monaiq_monaiq__monaiq_journal]
-argument-hint: "featureKey, featureType (access|ratelimit|quota)"
+argument-hint: "featureKey, featureType (access|ratelimit|quota|limit)"
 tier: 3
 invoked-by: [implement-licensing, manage-catalog]
 ---
@@ -53,7 +53,7 @@ For `CHECKPOINT-FEATURE-SELECTION`, `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, and an
 5. Use evidence before asking a new question. Infer the feature path from the selected feature, route packet, existing UI/business-logic location, SDK state, catalog/offering facts, and journal decisions. You must confirm inferred decisions in the next existing checkpoint, especially `CHECKPOINT-FEATURE-SELECTION` or `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, with labeled assumptions for credential handling impact, checkout architecture impact, feature path, and next steps. Do not add a new checkpoint name solely for evidence inference.
 6. Present the plan using `_shared/response-patterns.md` "Evidence Backing" plus selected feature, feature kind, source files/areas, and validation plan.
 7. Call `implement_product_feature` with `startStep=all` when context is sufficient; use `startStep=1` then `startStep=2` only when step-by-step review improves safety.
-8. Stop at `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT` before adding or changing feature gates, access checks, rate-limit or allowance assertions, consumption recording, UI locked states, or other business logic. Record the user's approval result before edits.
+8. Stop at `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT` before adding or changing feature gates, access checks, rate-limit, allowance or limit assertions, consumption recording, UI locked states, or other business logic. Record the user's approval result before edits.
 9. Apply code changes using the authoritative tool/resource guidance only. If guidance is missing, contradictory, or insufficient, stop and record a plugin guidance defect with `monaiq_journal record_error`.
 10. Build and exercise allow, denied, expired/misconfigured, and over-limit paths where applicable. Record validation failures with `monaiq_journal record_validation_failure` before remediation.
 11. Coalesce changed paths, validation proof, feature implementation checklist progress, and `featureImpl` handoff through `_shared/workflows/completion.md`; use `record_file_changes` only when changed paths exist. Call `update_checklist_progress` for feature implementation only after source skill, relevant MCP tool, canonical resources, and checkpoint/journal evidence prove the gate is complete before marking the checklist gate complete. Save `CHECKPOINT-SKILL-COMPLETE` with `proofOfDone` only when useful, apply returned file operations using the **File Operation Application Protocol** in `_shared/protocols.md`, then call `skill_completed` once and hand off persisted `featureImpl` or `validationProof`.
@@ -77,15 +77,15 @@ Use host-native UI quality: compact, accessible, responsive, aligned with the so
 <reference>
 ## Feature Discovery Reference
 
-Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit features require feature retrieval, consumption recording, and assertion; Quota (allowance) features require feature retrieval and use recording, which throws for a use the period cannot cover. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
+Identify the feature to gate and determine its type. Use the `product_feature` tool to list features for a product. Each feature exposes its key, kind, display name, and access-specific service type. Each feature type has its own assertion pattern: Access features are binary allowed/denied gates; RateLimit features require feature retrieval, consumption recording, and assertion; Quota (allowance) features require feature retrieval and use recording, which throws for a use the period cannot cover; Limit features assert the count the app would hold after the action, and record nothing. Resolve `monaiq://platforms/api-surface/{platform}` and `monaiq://domain/model` for exact platform types, enum values, and call sequence.
 
 ## Feature-Type Decision Table
 
-| Aspect | Feature Flag (Access) | Usage Limit (RateLimit) | Allowance (Quota) |
-|--------|----------------------|-------------------------|-------------------|
-| Pattern | Assert → allowed/denied | Get feature → record consumption → assert (throws over the limit) | Get feature → record use (throws when the period cannot cover it) |
-| Use case | Premium content, feature flags, capability toggles | API rate limits, burst protection — a cap per rolling window inside each runtime | Monthly exports, included units — so many uses per billing period, counted by the platform across every runtime of a seat |
-| Cardinality | One assertion per check | Multi-step: retrieve → record → assert | Multi-step: retrieve → record; optional check before the action |
+| Aspect | Feature Flag (Access) | Usage Limit (RateLimit) | Allowance (Quota) | Limit |
+|--------|----------------------|-------------------------|-------------------|-------|
+| Pattern | Assert → allowed/denied | Get feature → record consumption → assert (throws over the limit) | Get feature → record use (throws when the period cannot cover it) | Assert the count after the action → allowed/denied |
+| Use case | Premium content, feature flags, capability toggles | API rate limits, burst protection — a cap per rolling window inside each runtime | Monthly exports, included units — so many uses per billing period, counted by the platform across every runtime of a seat | Projects per plan, retention days, file size — a number the app holds to, counted by the app |
+| Cardinality | One assertion per check | Multi-step: retrieve → record → assert | Multi-step: retrieve → record; optional check before the action | One assertion per check; nothing recorded |
 
 ## Implementation Reference
 
@@ -105,7 +105,11 @@ Use when: usage must be metered and bounded inside each runtime (API rate limits
 
 ### Allowance Check (Quota — Uses per Billing Period)
 
-Use when: a capability is sold as so many uses per billing period. Retrieve the feature and record the use. A use the allowance does not cover is refused: it is neither counted nor reported, and the call throws with the date the period resets. To refuse the work before doing it, check first. There is no unlimited allowance: an uncapped capability is an access feature.
+Use when: a capability is sold as so many uses per billing period. Retrieve the feature and record the use. A use the allowance does not cover is refused: it is neither counted nor reported, and the call throws with the date the period resets. To refuse the work before doing it, check first. An allowance of 0 is no cap: every use is counted and reported, and none is refused.
+
+### Limit Check (Limit — A Number the App Holds To)
+
+Use when: the plan holds the app to a number of something the buyer keeps (projects, days of history, file size). The app counts what the buyer holds; the platform never counts it. Before the action that adds one, assert the count the app would hold AFTER it — `LimitLicenseAssertion.Create(featureKey, count)` (.NET) / `LimitAssertion.create(featureKey, count)` (JS): with a limit of 3, creating the fourth passes 4 and is denied. Read the limit with `GetLimit` / `client.getLimit` to show "7 of 10" or size a control; no number means unlimited. Needs SDK 2.4.0 or later.
 
 Rate-limit and consumption exceptions are product signals and must not be silently swallowed. Surface them in logs/UI/validation paths so the user understands when an entitlement or quota blocked the action.
 
@@ -163,7 +167,7 @@ Feature-gate code is additive — failed implementations can be corrected by edi
 </error-recovery>
 
 <success_criteria>
-- Correct assertion type used for each feature kind (Access, RateLimit or Quota).
+- Correct assertion type used for each feature kind (Access, RateLimit, Quota or Limit).
 - Feature checks return allowed for valid licenses with the feature granted.
 - Application handles the denied case gracefully.
 - No namespace errors — all imports match `monaiq://domain/namespaces`.

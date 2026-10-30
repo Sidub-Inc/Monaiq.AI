@@ -55,7 +55,6 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 
 - ProfileStatus = NotStarted -> guide full profile setup.
 - ProfileStatus = Incomplete -> show missing profile work.
-- ResellerStatus = Pending -> a stored legacy value, not a wait: there is no approval step. Treat it as NotStarted and offer seller-terms acceptance, which sets Enabled.
 - ResellerStatus = Enabled -> show summary and offer credential retrieval.
 - ResellerStatus = Enabled and `platformPlan.standing` is `None` or `Lapsed` -> the account is set up but cannot sell yet. Send the user to `platformPlan.nextStep.url` (the `sellerWizardUri`) and stop; see Platform Standing below.
 
@@ -69,9 +68,11 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 |-------|-------------|
 | `IssuerClientId` | Unique seller identifier — used in SDK configuration and checkout requests |
 | `ContactEmail` | Primary contact email for the account |
+| `BusinessName` | The name buyers see; required to accept the seller agreement, set by an owner |
+| `SupportContact` | Where buyers reach the account for help: an email address or an https link, set by an owner in Settings |
 | `LegalName` | Legal business name on file |
 | `ProfileStatus` | Account completeness: `NotStarted` → `Incomplete` → `Completed` |
-| `ResellerStatus` | Onboarding state: `NotStarted`, then `Enabled` on accepting the seller agreement. `Pending` is only a stored legacy value |
+| `ResellerStatus` | Onboarding state: `NotStarted`, then `Enabled` on accepting the seller agreement. There is no approval step |
 | `platformPlan` | The account's Monaiq platform standing — what it may SELL (see Platform Standing below) |
 
 **Status meanings:**
@@ -80,7 +81,6 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 - **ProfileStatus = Incomplete** — Some profile fields are filled but required information is missing
 - **ProfileStatus = Completed** — All required profile information is on file
 - **ResellerStatus = NotStarted** — Seller terms not accepted; the seller account is not activated
-- **ResellerStatus = Pending** — A legacy value some older accounts still store. Nothing sets it and nobody approves it; accepting the seller terms moves the account to Enabled
 - **ResellerStatus = Enabled** — The seller account is active: the user can create products and offerings (a completed checkout creates each license). That is not the same as being able to sell — completing a sale additionally requires platform standing (see Platform Standing below)
 
 The `IssuerClientId` is the primary identifier for the seller account. It is used as the `IssuerClientId` parameter in checkout requests and appears in license metadata.
@@ -148,7 +148,13 @@ Review both documents carefully before proceeding to accept terms.
 
 **Important:** Accepting terms is NOT part of this skill workflow. It is a **tool action** that modifies state.
 
-To accept terms, call the `profile` tool directly with `startStep=4` and `data={"customerTerms": true, "resellerTerms": true}`. Each flag is optional — include only the terms the user accepts. Customer terms complete the profile (`ProfileStatus = Completed`); seller terms enable selling (`ResellerStatus = Enabled`), so a seller accepts both. This action records the user's agreement and updates the profile status.
+To accept terms, call the `profile` tool directly with `startStep=4` and `data={"customerTerms": true, "resellerTerms": true, "businessName": "Kestrel Studio"}`. Each flag is optional — include only the terms the user accepts. Customer terms complete the profile (`ProfileStatus = Completed`); seller terms enable selling (`ResellerStatus = Enabled`), so a seller accepts both. This action records the user's agreement and updates the profile status.
+
+Seller terms need the business name buyers will see. When the account has none, ask the builder for it and send it as `businessName` with `resellerTerms`; without it the step answers `NeedsBusinessName` and writes nothing. Only an owner can set it: a member's acceptance answers `OwnerOnly`. A `businessName` sent when the account already has one is ignored; the name changes in Settings.
+
+## Billing Rules (Step 5)
+
+A seller's rules for the customers they bill live on the account, not on offerings. Call the `profile` tool with `startStep=5` and `data` holding only the settings to change: `suspensionGraceHours` (0 to 720; how long after a failed card payment, or after an invoice's due date, a customer who has not paid keeps access before the license is suspended; 48 by default; 0 suspends at once), `remindBeforeTrialEnds` (emails the customer 2 days before a trial ends; on by default) and `remindBeforeRenewal` (emails the customer 7 days before a subscription billed monthly or less often renews; on by default). Step 5 with no `data` reads the current values. Only an owner can change them; a member's call answers `OwnerOnly`.
 
 ## Related Tools
 
@@ -164,6 +170,7 @@ To accept terms, call the `profile` tool directly with `startStep=4` and `data={
 - **View terms**: Review Terms of Service and Privacy Policy before accepting.
 - **Check seller status**: See current ResellerStatus and what to expect next.
 - **Check selling readiness**: Read `platformPlan.standing`; when it is `None` or `Lapsed`, hand the user `platformPlan.nextStep.url`.
+- **Billing rules**: Read or change the grace before suspension and the two reminder switches with `profile` step 5.
 
 </reference>
 

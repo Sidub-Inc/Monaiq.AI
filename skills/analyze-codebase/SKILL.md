@@ -1,6 +1,6 @@
 ---
 name: analyze-codebase
-description: "Use when: analyzing an existing codebase to identify licensable capabilities, premium features, API quotas, exports, integrations, or monetization candidates; classifies findings as access gates, rate limits, or allowances."
+description: "Use when: analyzing an existing codebase to identify licensable capabilities, premium features, API quotas, exports, integrations, or monetization candidates; classifies findings as access gates, rate limits, allowances or limits."
 agent: monaiq
 auto-invoke:
   - "User wants to identify what capabilities in their app could be licensed or monetized"
@@ -14,7 +14,7 @@ invoked-by: [getting-started]
 ---
 
 <objective>
-Analyze an existing app and produce an evidence packet of licensable capabilities, classified as Access, RateLimit or Quota (allowance) features, with suggested FeatureKey values and downstream routing. This skill is read-only except for journal updates.
+Analyze an existing app and produce an evidence packet of licensable capabilities, classified as Access, RateLimit, Quota (allowance) or Limit features, with suggested FeatureKey values and downstream routing. This skill is read-only except for journal updates.
 </objective>
 
 <input-context>
@@ -27,7 +27,7 @@ If invoked without upstream context, performs full project scan.
 
 <output-context>
 Provides to scenario-advisor:
-- capabilities: [{ name, type: "access" | "ratelimit" | "quota", sourceFile, reason, suggestedFeatureKey }]
+- capabilities: [{ name, type: "access" | "ratelimit" | "quota" | "limit", sourceFile, reason, suggestedFeatureKey }]
 - techStack: detected technology stack (e.g., "React + Express", ".NET 8 Web API")
 
 Discovery chain: analyze-codebase [capabilities] → scenario-advisor [selectedScenario] → design-monetization [pricingPlan] → manage-catalog
@@ -48,7 +48,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 3. Determine scan scope from route context, prior journal state, existing conversation analysis, and project structure. Use `CHECKPOINT-ANALYSIS-SCOPE` before broad scans or scope changes.
 4. If products exist, call `product_feature` list and compare catalog features against codebase findings so the output can distinguish existing coverage from gaps.
 5. Scan project configuration and key business-code areas. Keep evidence bounded: file paths, area summaries, observed patterns, and confidence; do not quote secrets or dump full files.
-6. Classify findings as Access (yes/no), RateLimit (a cap per rolling window inside each runtime) or Quota (so many uses per billing period) features using fetched scenario/domain taxonomy. Generate stable suggested FeatureKey values.
+6. Classify findings as Access (yes/no), RateLimit (a cap per rolling window inside each runtime), Quota (so many uses per billing period) or Limit (a number the app holds to) features using fetched scenario/domain taxonomy. Generate stable suggested FeatureKey values.
 6.5. For every RateLimit or Quota finding, trace its **value paths** (see § Trace Value Paths): every other surface that returns the same value. A limit holds only if each path is metered by the same feature, bounded on purpose, or recorded as free on purpose.
 7. Present the evidence packet using `_shared/response-patterns.md` "Evidence Backing" plus source areas.
 8. If missing or stale evidence prevents a confident recommendation, route to `analyze-codebase`, profile/catalog state detection, or the narrowest prerequisite journey step before catalog/pricing recommendations.
@@ -89,9 +89,10 @@ Using the feature type taxonomy from `monaiq://patterns/scenarios`, classify eac
 
 - **Feature flag** (called `ProductAccessFeature` in Monaiq): Binary yes/no — user either has access or doesn't. Use for premium modules, feature flags, advanced tools, exclusive content.
 - **Usage limit** (called `ProductRateLimitFeature` in Monaiq): a cap per rolling window inside each runtime. Use for throughput: API calls per minute, burst protection.
-- **Allowance** (Quota feature): so many uses per billing period, counted per seat across every runtime. Use when the use itself is the product: documents processed, exports, compute units.
+- **Allowance** (Quota feature): so many uses per billing period, counted per seat across every runtime. Use when the use itself is the product: documents processed, exports, compute units. An allowance of 0 is no cap: the uses are counted and reported, never refused.
+- **Limit** (called `ProductLimitFeature` in Monaiq): a number the app holds to, counted by the app itself. Use for what the buyer keeps: projects per plan, days of history retained, largest file size.
 
-Apply the heuristic: "Is the answer yes/no?" → Feature flag. "How fast?" → Usage limit. "How many this period?" → Allowance.
+Apply the heuristic: "Is the answer yes/no?" → Feature flag. "How fast?" → Usage limit. "How many this period?" → Allowance. "How many can they keep (projects, retention days, file size)?" → Limit.
 
 ## Trace Value Paths
 
@@ -111,9 +112,9 @@ Present a structured table of identified capabilities:
 
 | Capability | Source File | Suggested FeatureKey | Feature Type | Value Paths | Reasoning |
 |-----------|-------------|---------------------|--------------|-------------|-----------|
-| [capability name] | [file path] | [suggested-key] | Access / RateLimit / Quota | [other paths and their decision, or "none found"] | [why this type] |
+| [capability name] | [file path] | [suggested-key] | Access / RateLimit / Quota / Limit | [other paths and their decision, or "none found"] | [why this type] |
 
-Follow with a brief narrative summary: how many capabilities were found, the split between access, rate-limited and allowance features, any value path left unmetered and why, and observations about the application's licensing potential.
+Follow with a brief narrative summary: how many capabilities were found, the split between access, rate-limited, allowance and limit features, any value path left unmetered and why, and observations about the application's licensing potential.
 
 ## Suggest Next Step
 

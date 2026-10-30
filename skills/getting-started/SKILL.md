@@ -88,7 +88,8 @@ When users describe what they want using everyday language, map their terms to M
 | "license key" / "activation key" / "license code" | EncodedCredential | One `SIDUB_LIC_` string scoped to ONE seat of a license. Returned by a completed checkout, or issued on the seat page (shown once, listable and revocable there), then stored by the app. Not the account API key. |
 | "feature flag" / "premium feature" | ProductAccessFeature | Gated by FeatureKey |
 | "rate limit" / "calls per minute" / "burst limit" | ProductRateLimitFeature | A cap per rolling time window inside each runtime |
-| "monthly quota" / "N per month" / "included units" / "allowance" | ProductQuotaFeature | So many uses per billing period, counted by the platform across every runtime |
+| "monthly quota" / "N per month" / "included units" / "allowance" | ProductQuotaFeature | So many uses per billing period, counted by the platform across every runtime; an allowance of 0 counts every use and caps none |
+| "N projects per plan" / "retention days" / "max file size" / "up to N" | ProductLimitFeature | A number the app holds to; the app counts it, the platform never does |
 | "offering" (also said as "pricing tier" or "plan") | ProductOffering | Bundles features at a price point. Say "offering" back to the user; "plan" is reserved for their Monaiq plan |
 | "product" / "app" / "software" | Product | The scope boundary for all features and offerings |
 

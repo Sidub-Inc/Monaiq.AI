@@ -28,7 +28,7 @@ If invoked without upstream context, asks the user about their application type 
 
 <output-context>
 Provides to design-monetization:
-- selectedScenario: { name, model, featureTypes: ["access" | "ratelimit" | "quota"], offeringModel, enforcement }
+- selectedScenario: { name, model, featureTypes: ["access" | "ratelimit" | "quota" | "limit"], offeringModel, enforcement }
 - appType: "saas" | "desktop" | "plugin" | "package" | "cli" | "api"
 
 Discovery chain: analyze-codebase [capabilities] → scenario-advisor [selectedScenario] → design-monetization [pricingPlan]
@@ -83,6 +83,8 @@ Using the composition examples from `monaiq://patterns/scenarios`, present 2–3
 | **Best For** | [trade-off summary] | [trade-off summary] | [trade-off summary] |
 
 Reference specific building blocks from `monaiq://patterns/scenarios` by name — do not duplicate resource content.
+
+In the Pricing Tiers row, a tier is a plan a customer holds one at a time; an add-on is an offering with `AddOn` true that sits alongside the plan. Free plans and trials are once per account and one seat.
 
 ## Capture User Selection
 

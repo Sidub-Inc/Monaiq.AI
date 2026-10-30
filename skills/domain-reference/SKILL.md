@@ -63,8 +63,8 @@ Fetch the domain model MCP resource. This contains comprehensive documentation o
 Fetch `monaiq://domain/model` via the MCP `resources/read` operation or `fetch_step_resources` tool before proceeding.
 
 **Key entities covered:**
-- Customer, CustomerMember, Product, ProductFeature (polymorphic: Access/RateLimit/Quota)
-- ProductOffering, FeatureOffering (polymorphic: ServiceAccess/RateLimit/Quota)
+- Customer, CustomerMember, Product, ProductFeature (polymorphic: Access/RateLimit/Quota/Limit)
+- ProductOffering, FeatureOffering (polymorphic: ServiceAccess/RateLimit/Quota/Limit)
 - License, LicenseFeature, FeatureRate, Seat
 - KeyDescriptor, EncodedCredential
 
@@ -83,7 +83,7 @@ Use the fetched resources as internal context to answer the user's specific doma
 | Question Type | Key Entities | Critical Fields |
 |--------------|-------------|-----------------|
 | "What is a FeatureKey?" | ProductFeature, FeatureOffering, LicenseFeature | `FeatureKey` — the linking field across catalog and runtime |
-| "How do features work?" | ProductAccessFeature, ProductRateLimitFeature, ProductQuotaFeature | Feature flags (Access), usage limits (RateLimit) and allowances (Quota) — polymorphic types with distinct assertion classes |
+| "How do features work?" | ProductAccessFeature, ProductRateLimitFeature, ProductQuotaFeature, ProductLimitFeature | Feature flags (Access), usage limits (RateLimit), allowances (Quota) and limits (Limit, a number the app holds to) — polymorphic types with distinct assertion classes |
 | "What's the difference between offerings and licenses?" | ProductOffering, License | Pricing tier (Offering) = pricing template, License = the purchase issued from it |
 | "What's the difference between a license and a seat?" | License, Seat | License = the purchase (classification, term, pricing, features); Seat = one unit of it, with its own license codes |
 | "How does checkout connect to licensing?" | CheckoutRequest, License, Seat, EncodedCredential | CorrelationId flow, credential provisioning per seat |
