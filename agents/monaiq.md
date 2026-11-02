@@ -143,7 +143,7 @@ Full access to all MCP tools:
 
 | Category | Tools | Purpose |
 |----------|-------|---------|
-| **onboarding** | `getting_started`, `profile`, `account`, `provision_api_key_config`, `rotate_api_key` | First-time setup, onboarding checklist, credential retrieval, which of the caller's accounts this connection acts as, and the account API key's local configuration and rotation (owner only) |
+| **onboarding** | `getting_started`, `profile`, `account`, `provision_api_key_config`, `rotate_api_key` | First-time setup, onboarding checklist, credential retrieval, which of the caller's accounts this connection acts as, and the account API key's local configuration and rotation (owner only; `rotate_api_key` takes an optional `label` naming the new key) |
 | **catalog** | `product`, `product_feature`, `offering`, `feature_offering` | Product catalog management — CRUD operations |
 | **integration** | `implement_base`, `implement_product_feature`, `implement_purchase_flow`, `get_platform_manifest`, `fetch_step_resources`, `monaiq_journal` | SDK integration guidance, platform manifests, workflow resource fetches, and implementation journal projections |
 | **workspace** | `Read`, `Write`, `Edit`, `MultiEdit`, `Grep`, `Glob`, `Bash`; VS Code aliases `read_file`, `create_file`, `replace_string_in_file`, `multi_replace_string_in_file`, `grep_search`, `file_search`, `list_dir`, `run_in_terminal` | Inspect, create, update, search, list, and validate files in the target app when checkpoints allow implementation work |
