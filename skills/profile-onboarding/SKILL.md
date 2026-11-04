@@ -1,6 +1,6 @@
 ---
 name: profile-onboarding
-description: "Use when: viewing Monaiq seller profile status, retrieving seller ApiKey (owners only) and IssuerClientId, or reviewing terms and privacy documents."
+description: "Use when: viewing Monaiq seller profile status, retrieving seller ApiKey (owners only) and IssuerClientId, reviewing terms and privacy documents, setting billing rules, or registering the customer sign-in that skips the emailed code on a free claim."
 agent: monaiq
 auto-invoke:
   - "User wants to view their seller profile or retrieve SDK credentials"
@@ -156,6 +156,16 @@ Seller terms need the business name buyers will see. When the account has none, 
 
 A seller's rules for the customers they bill live on the account, not on offerings. Call the `profile` tool with `startStep=5` and `data` holding only the settings to change: `suspensionGraceHours` (0 to 720; how long after a failed card payment, or after an invoice's due date, a customer who has not paid keeps access before the license is suspended; 48 by default; 0 suspends at once), `remindBeforeTrialEnds` (emails the customer 2 days before a trial ends; on by default) and `remindBeforeRenewal` (emails the customer 7 days before a subscription billed monthly or less often renews; on by default). Step 5 with no `data` reads the current values. Only an owner can change them; a member's call answers `OwnerOnly`.
 
+## Customer Sign-in (Step 6)
+
+When the seller's app already signs its customers in with OpenID Connect (Microsoft Entra, Google, Auth0 and the like), registering that sign-in lets a customer the app signed in claim a free license or a trial with one confirm instead of an emailed code. The app sends the customer's ID token as `BuyerIdToken` on the checkout (see the `implement-purchase-flow` skill). Paid checkouts go through Stripe and do not use it.
+
+Call the `profile` tool with `startStep=6` and `data={"issuer": "...", "clientId": "..."}` to register or replace the pair, or both `null` to clear it. With no `data` it reads the current pair; step 1 shows it as `customerSignIn` too.
+
+- `issuer` is compared character for character with the token's `iss`, trailing slash included. Take it from a real ID token the app received; never type it from memory. It must be an `https://` URL on a public host name.
+- `clientId` is the client id of the seller's own sign-in app, the token's `aud`. It is not the `IssuerClientId`.
+- A refusal answers `ValidationError` with the same sentence the portal's Customer sign-in page shows, and writes nothing. Only an owner can change the pair; a member's call answers `OwnerOnly`.
+
 ## Related Tools
 
 - OAuth sign-in — handled by the MCP client (prerequisite for all profile operations; no tool call)
@@ -171,6 +181,7 @@ A seller's rules for the customers they bill live on the account, not on offerin
 - **Check seller status**: See current ResellerStatus and what to expect next.
 - **Check selling readiness**: Read `platformPlan.standing`; when it is `None` or `Lapsed`, hand the user `platformPlan.nextStep.url`.
 - **Billing rules**: Read or change the grace before suspension and the two reminder switches with `profile` step 5.
+- **Customer sign-in**: Register, read or clear the issuer and client id behind the one-confirm free claim with `profile` step 6.
 
 </reference>
 

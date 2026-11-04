@@ -152,8 +152,8 @@ the status vocabulary is unchanged.
 
 **Buyer already signed in to your app:** if your app signs the buyer in with OpenID Connect before
 the sale, send their ID token as `BuyerIdToken` on the same request. The claim page then shows one
-confirm and no one-time code. It needs the seller's issuer registered first, under Account settings
-→ Customer sign-in in the portal: the token's `iss` exactly, and your app's client ID (`aud`). Request
+confirm and no one-time code. It needs the seller's issuer registered first, with `profile` step 6
+or under Account settings → Customer sign-in in the portal: the token's `iss` exactly, and your app's client ID (`aud`). Request
 the `email` scope; the token's `email` must be the customer email. A token that is expired, from
 another issuer, for another address or badly signed is ignored, never an error: the buyer gets the
 one-time code as before. The proof is honoured for one hour from the token's `iat`. Never send an
