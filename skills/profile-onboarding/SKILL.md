@@ -1,12 +1,12 @@
 ---
 name: profile-onboarding
-description: "Use when: viewing Monaiq seller profile status, retrieving seller ApiKey (owners only) and IssuerClientId, reviewing terms and privacy documents, setting billing rules, or registering the customer sign-in that skips the emailed code on a free claim."
+description: "Use when: viewing Monaiq seller profile status, payouts status, retrieving seller ApiKey (owners only) and IssuerClientId, reviewing terms and privacy documents, setting billing rules, or registering the customer sign-in that skips the emailed code on a free claim."
 agent: monaiq
 auto-invoke:
   - "User wants to view their seller profile or retrieve SDK credentials"
   - "User wants to review terms of service before accepting"
   - "User asks about their onboarding status or account details"
-tags: [profile, onboarding, credentials, terms]
+tags: [profile, onboarding, credentials, terms, payouts]
 category: onboarding
 allowed-tools: [profile, account, monaiq_journal, fetch_step_resources, mcp__plugin_monaiq_monaiq__profile, mcp__plugin_monaiq_monaiq__account, mcp__plugin_monaiq_monaiq__monaiq_journal, mcp__plugin_monaiq_monaiq__fetch_step_resources]
 tier: 3
@@ -26,7 +26,7 @@ If invoked without upstream context, checks profile state directly.
 
 <output-context>
 Provides to downstream skills:
-- profileData: { issuerClientId, profileStatus, resellerStatus, apiKeyAvailable, platformStanding }
+- profileData: { issuerClientId, profileStatus, resellerStatus, apiKeyAvailable, platformStanding, payoutsState, canSell }
 
 Used by implement-purchase-flow for checkout configuration. Purchased EncodedCredential values come from checkout results, not the seller profile.
 </output-context>
@@ -42,8 +42,9 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 <workflow>
 1. Run `_shared/workflows/startup.md` for `profile-onboarding`.
 2. **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **profile status + terms acceptance**. Evidence sources, in priority order: `profile` (`ProfileStatus`, `ResellerStatus`, `IssuerClientId`), prior journal decisions, route packet. The recommendation is the next forward action that unblocks catalog/checkout/implementation; the host-native question lets the user proceed, view terms/privacy, or pause.
-3. Call `profile` to detect `ProfileStatus`, `ResellerStatus`, `IssuerClientId`, and `platformPlan`. (Authentication is handled by the MCP client's OAuth flow; on `AuthError`, ask the user to complete the sign-in prompt and retry.)
+3. Call `profile` to detect `ProfileStatus`, `ResellerStatus`, `IssuerClientId`, `platformPlan`, `payouts`, `canSell` and `notices`. (Authentication is handled by the MCP client's OAuth flow; on `AuthError`, ask the user to complete the sign-in prompt and retry.)
 3a. Read `platformPlan.standing` from the same response — it is the commercial half of "can this account sell", and the status fields do not answer it. Do not skip it because the terms are accepted.
+3b. Read `payouts` and `notices` from the same response — the money half of "can this account sell". Tell the user the `payouts.line`, what is in `payouts.due` and by `payouts.deadline`, and send them to `payouts.portalUrl`.
 3. Present status in business-readable terms: what the account can do now, what is blocked, and which next action unblocks catalog, checkout, or implementation work.
 4. Retrieve seller credentials only when needed for catalog/checkout setup or explicitly requested. Never write raw `ApiKey`, `EncodedCredential`, `.env`, user-secrets, or secret-bearing values into prompts, `.monaiq`, summaries, docs, or generated plugin output.
 5. If the user wants to accept terms, stop at `CHECKPOINT-PRE-TERMS-ACCEPTANCE`, follow `_shared/workflows/checkpoint.md`, present the terms/privacy review state, record the user's approval result, then call `profile` step 4 only after approval.
@@ -74,6 +75,9 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 | `ProfileStatus` | Account completeness: `NotStarted` → `Incomplete` → `Completed` |
 | `ResellerStatus` | Onboarding state: `NotStarted`, then `Enabled` on accepting the seller agreement. There is no approval step |
 | `platformPlan` | The account's Monaiq platform standing — what it may SELL (see Platform Standing below) |
+| `payouts` | Whether Stripe pays the seller out (see Payouts below) |
+| `canSell` | True when terms are accepted, the account holds a plan, and payouts are `Connected` or `Needs attention`; `canSellBlockedBy` lists what is missing (`terms`, `plan`, `payouts`) |
+| `notices` | Open account notices: `kind`, `severity`, `line`, `actionPath`, `due`. Relay each to the user; empty when nothing needs them |
 
 **Status meanings:**
 
@@ -81,7 +85,9 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 - **ProfileStatus = Incomplete** — Some profile fields are filled but required information is missing
 - **ProfileStatus = Completed** — All required profile information is on file
 - **ResellerStatus = NotStarted** — Seller terms not accepted; the seller account is not activated
-- **ResellerStatus = Enabled** — The seller account is active: the user can create products and offerings (a completed checkout creates each license). That is not the same as being able to sell — completing a sale additionally requires platform standing (see Platform Standing below)
+- **ResellerStatus = Enabled** — The seller account is active: the user can create products and offerings (a completed checkout creates each license). That is not the same as being able to sell — completing a sale additionally requires platform standing and payouts that can pay (see Platform Standing and Payouts below)
+
+`resellerStatusDescription` says "Seller onboarding is complete: seller terms are accepted and the account is active." only when payouts are `Connected` or `Needs attention`. Otherwise it says "Seller terms are accepted and the account is active." followed by the payouts state and what is left. Repeat that sentence; never say onboarding is complete on your own.
 
 The `IssuerClientId` is the primary identifier for the seller account. It is used as the `IssuerClientId` parameter in checkout requests and appears in license metadata.
 
@@ -111,6 +117,30 @@ The `IssuerClientId` is the primary identifier for the seller account. It is use
 - **Never invent the URL.** Resolve `sellerWizardUri` from `monaiq://config/endpoints`, or use the one `platformPlan.nextStep` handed you.
 
 **What it costs, stated plainly when the user asks:** selling on Monaiq requires a Monaiq plan. The wizard states which plans are open and what each one costs. Do not promise a price, a discount, or a free plan — say what the wizard shows and let the user read it.
+
+## Payouts
+
+`profile` step 1 returns a `payouts` block: `state`, `line`, `due`, `deadline` and `portalUrl`. It is Monaiq's own reading of the seller's Stripe account, in seven words and never Stripe's codes. Say `line` to the user as written.
+
+| `payouts.state` | What it means | canSell |
+|-----------------|---------------|---------|
+| `Not started` | No Stripe account yet. | false |
+| `Setting up` | Stripe is still taking or checking the seller's details. | false |
+| `Connected` | Payouts work. | true |
+| `Needs attention` | Payouts work, and Stripe needs something by `deadline`; `due` lists it. | true |
+| `Paused` | Stripe, or Monaiq, has paused payouts. `due` lists what Stripe wants. | false |
+| `Stopped` | Stripe, or Monaiq, has declined the account. | false |
+| `Disconnected` | The Stripe account is gone; the seller sets up payouts again. | false |
+
+`due` is empty when nothing is asked; `deadline` is null when Stripe set none.
+
+**The remedy is a page, not a tool call.** For any state but `Connected`, hand the user `payouts.portalUrl` (the `payoutsUri` from `monaiq://config/endpoints`): the Payouts page says what to do and opens Stripe from the user's own signed-in session.
+
+- **Never open, start or fix Stripe yourself.** No tool starts onboarding or calls Stripe, and a Stripe login link is never handed to an agent or sent in a message.
+- **Never gate your own work on payouts.** Catalog, credentials and SDK work carry on; what changes is that the seller cannot be paid.
+- **Never quote a Stripe code.** If a user asks, the Payouts page has the detail.
+
+`notices` lists what needs the seller right now. Relay each by its `line`, point at `actionPath` on the portal, and mention `due` when it has one.
 
 ## Retrieve Credentials
 
@@ -179,14 +209,15 @@ Call the `profile` tool with `startStep=6` and `data={"issuer": "...", "clientId
 - **Credential recovery**: Re-retrieve seller checkout credentials from your profile. Use purchase-flow checkout results or your application storage for purchased `EncodedCredential` values.
 - **View terms**: Review Terms of Service and Privacy Policy before accepting.
 - **Check seller status**: See current ResellerStatus and what to expect next.
-- **Check selling readiness**: Read `platformPlan.standing`; when it is `None` or `Lapsed`, hand the user `platformPlan.nextStep.url`.
+- **Check selling readiness**: Read `canSell`. When it is false, `canSellBlockedBy` names what is missing: for `plan`, hand the user `platformPlan.nextStep.url`; for `payouts`, hand them `payouts.portalUrl`.
 - **Billing rules**: Read or change the grace before suspension and the two reminder switches with `profile` step 5.
 - **Customer sign-in**: Register, read or clear the issuer and client id behind the one-confirm free claim with `profile` step 6.
 
 </reference>
 
 <success_criteria>
-- Profile information is visible including `IssuerClientId`, `ProfileStatus`, `ResellerStatus`, and `platformPlan.standing`
+- Profile information is visible including `IssuerClientId`, `ProfileStatus`, `ResellerStatus`, `platformPlan.standing`, `payouts.state` and `canSell`
+- When `canSell` is false for `payouts`, the user is told the `payouts.line` and pointed at `payouts.portalUrl`; Stripe is never opened for them and no onboarding is said to be complete
 - When `platformPlan.standing` is `None` or `Lapsed`, the user is pointed at the `sellerWizardUri` and no purchase is attempted through MCP
 - Seller credentials are retrieved: `IssuerClientId` always, `ApiKey` for an owner (a member is told to ask an owner)
 - Terms of Service and Privacy Policy are presented for review

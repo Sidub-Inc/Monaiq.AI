@@ -237,7 +237,7 @@ Each skill has a bounded responsibility; when a request crosses a boundary, rout
 | `scenario-advisor` | Recommend licensing scenarios for app type and capability mix | Discovery |
 | `design-monetization` | Design pricing tiers and catalog-ready offering plans without creating entities | Discovery |
 | `domain-reference` | Explain domain concepts, namespaces, and entity relationships via MCP resources | Discovery |
-| `profile-onboarding` | View profile, credentials, onboarding state, and terms documents | Implementation |
+| `profile-onboarding` | View profile, credentials, onboarding state, payouts status and open notices, and terms documents | Implementation |
 | `maintain-implementation-journal` | Protocol used by workflow skills to persist local progress, checkpoints, and handoffs | Both |
 
 ### Progression Flows

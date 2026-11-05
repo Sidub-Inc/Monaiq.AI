@@ -184,3 +184,10 @@ Do not continue the skill workflow until the user's answer is received. Do not i
 - `troubleshoot-integration`: read/diagnose first; fixes that mutate code/config/business logic require the validation and checkpoint workflows.
 
 When a skill has broad tool exposure for platform compatibility, these operation rules are the binding behavioral constraint.
+
+## Refused Stripe Calls
+
+A tool call that Stripe refused fails with one of five codes, one per situation, never `ServerError`:
+
+- `PayoutsNeedAttention`, `PayoutsPaused`, `PayoutsStopped`, `PayoutsDisconnected`: the seller's Stripe account is the cause. The error `message` is the line to relay to the user as written, and `details.payoutsUri` is the Payouts page, where the seller sees what Stripe needs and fixes it. No tool can change a Stripe account; do not retry, and do not work around it by changing the catalog.
+- `PaymentsUnavailable`: the fault is on Monaiq's side and there is nothing for the seller to fix. Tell the user, retry once after a few minutes, and quote the `correlationId` if it persists.
