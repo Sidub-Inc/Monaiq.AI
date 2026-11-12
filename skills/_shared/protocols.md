@@ -35,7 +35,7 @@ This is the canonical fallback every skill applies when invoked directly without
 
 Business-readable output comes first. Compact technical backing follows with route packet fields, evidence summaries, checkpoint names, and no-secret implementation details. See `_shared/response-patterns.md` "Evidence Backing" for the canonical evidence shape used by specialist workflow steps.
 
-Route, handoff, journal, and checkpoint payloads must stay secret-free. Record `session established`, credential source status, redacted placeholders, and package/version facts; never record raw ApiKeys, EncodedCredential values, JWTs, Stripe keys, `.env` contents, user-secrets contents, or encoded credential fragments.
+Route, handoff, journal, and checkpoint payloads must stay secret-free. Record `session established`, credential source status, redacted placeholders, and package/version facts; never record raw ApiKeys, EncodedCredential values, JWTs, payment provider keys, `.env` contents, user-secrets contents, or encoded credential fragments.
 
 ## Response Pattern
 
@@ -185,9 +185,9 @@ Do not continue the skill workflow until the user's answer is received. Do not i
 
 When a skill has broad tool exposure for platform compatibility, these operation rules are the binding behavioral constraint.
 
-## Refused Stripe Calls
+## Refused Payments Calls
 
-A tool call that Stripe refused fails with one of five codes, one per situation, never `ServerError`:
+A tool call the payments service refused fails with one of five codes, one per situation, never `ServerError`:
 
-- `PayoutsNeedAttention`, `PayoutsPaused`, `PayoutsStopped`, `PayoutsDisconnected`: the seller's Stripe account is the cause. The error `message` is the line to relay to the user as written, and `details.payoutsUri` is the Payouts page, where the seller sees what Stripe needs and fixes it. No tool can change a Stripe account; do not retry, and do not work around it by changing the catalog.
-- `PaymentsUnavailable`: the fault is on Monaiq's side and there is nothing for the seller to fix. Tell the user, retry once after a few minutes, and quote the `correlationId` if it persists.
+- `PayoutsNeedAttention`, `PayoutsPaused`, `PayoutsStopped`, `PayoutsDisconnected`: the seller's payouts account is the cause. The error `message` is the line to relay to the user as written, and `details.payoutsUri` is the Payouts page, where the seller sees what their payouts account needs and fixes it. No tool can change a payouts account; do not retry, and do not work around it by changing the catalog.
+- `PaymentsUnavailable`: payments could not be reached, and there is nothing for the seller to fix. Tell the user, retry once after a few minutes, and quote the `correlationId` if it persists.

@@ -44,7 +44,7 @@ Follow the Direct Invocation Contract in `_shared/protocols.md` (mutation-capabl
 2. **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **profile status + terms acceptance**. Evidence sources, in priority order: `profile` (`ProfileStatus`, `ResellerStatus`, `IssuerClientId`), prior journal decisions, route packet. The recommendation is the next forward action that unblocks catalog/checkout/implementation; the host-native question lets the user proceed, view terms/privacy, or pause.
 3. Call `profile` to detect `ProfileStatus`, `ResellerStatus`, `IssuerClientId`, `platformPlan`, `payouts`, `canSell` and `notices`. (Authentication is handled by the MCP client's OAuth flow; on `AuthError`, ask the user to complete the sign-in prompt and retry.)
 3a. Read `platformPlan.standing` from the same response — it is the commercial half of "can this account sell", and the status fields do not answer it. Do not skip it because the terms are accepted.
-3b. Read `payouts` and `notices` from the same response — the money half of "can this account sell". Tell the user the `payouts.line`, what is in `payouts.due` and by `payouts.deadline`, and send them to `payouts.portalUrl`.
+3b. Read `payouts` and `notices` from the same response — the money half of "can this account sell". Tell the user the `payouts.line`, how many things are asked (`payouts.outstanding`) and by `payouts.deadline`, and send them to `payouts.portalUrl`. While the plan is missing or payouts were never connected, that is the become-a-seller wizard, the same page as `platformPlan.nextStep.url`: hand it over once.
 3. Present status in business-readable terms: what the account can do now, what is blocked, and which next action unblocks catalog, checkout, or implementation work.
 4. Retrieve seller credentials only when needed for catalog/checkout setup or explicitly requested. Never write raw `ApiKey`, `EncodedCredential`, `.env`, user-secrets, or secret-bearing values into prompts, `.monaiq`, summaries, docs, or generated plugin output.
 5. If the user wants to accept terms, stop at `CHECKPOINT-PRE-TERMS-ACCEPTANCE`, follow `_shared/workflows/checkpoint.md`, present the terms/privacy review state, record the user's approval result, then call `profile` step 4 only after approval.
@@ -75,8 +75,8 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 | `ProfileStatus` | Account completeness: `NotStarted` → `Incomplete` → `Completed` |
 | `ResellerStatus` | Onboarding state: `NotStarted`, then `Enabled` on accepting the seller agreement. There is no approval step |
 | `platformPlan` | The account's Monaiq platform standing — what it may SELL (see Platform Standing below) |
-| `payouts` | Whether Stripe pays the seller out (see Payouts below) |
-| `canSell` | True when terms are accepted, the account holds a plan, and payouts are `Connected` or `Needs attention`; `canSellBlockedBy` lists what is missing (`terms`, `plan`, `payouts`) |
+| `payouts` | Where the seller's payouts stand (see Payouts below) |
+| `canSell` | True when terms are accepted, the account holds a plan, and payouts are `Connected` or `Needs attention`; `canSellBlockedBy` lists what is missing (`invitation`, `terms`, `plan`, `payouts`) |
 | `notices` | Open account notices: `kind`, `severity`, `line`, `actionPath`, `due`. Relay each to the user; empty when nothing needs them |
 
 **Status meanings:**
@@ -84,7 +84,7 @@ Call the `profile` tool with `startStep=1` to view the seller profile.
 - **ProfileStatus = NotStarted** — Account created but no profile information submitted
 - **ProfileStatus = Incomplete** — Some profile fields are filled but required information is missing
 - **ProfileStatus = Completed** — All required profile information is on file
-- **ResellerStatus = NotStarted** — Seller terms not accepted; the seller account is not activated
+- **ResellerStatus = NotStarted** — Seller terms not accepted; the seller account is not activated. When `canSellBlockedBy` holds `invitation`, `resellerStatusDescription` says "Selling on Monaiq is by invitation during preview.": repeat it and do not offer to accept the seller terms
 - **ResellerStatus = Enabled** — The seller account is active: the user can create products and offerings (a completed checkout creates each license). That is not the same as being able to sell — completing a sale additionally requires platform standing and payouts that can pay (see Platform Standing and Payouts below)
 
 `resellerStatusDescription` says "Seller onboarding is complete: seller terms are accepted and the account is active." only when payouts are `Connected` or `Needs attention`. Otherwise it says "Seller terms are accepted and the account is active." followed by the payouts state and what is left. Repeat that sentence; never say onboarding is complete on your own.
@@ -120,25 +120,27 @@ The `IssuerClientId` is the primary identifier for the seller account. It is use
 
 ## Payouts
 
-`profile` step 1 returns a `payouts` block: `state`, `line`, `due`, `deadline` and `portalUrl`. It is Monaiq's own reading of the seller's Stripe account, in seven words and never Stripe's codes. Say `line` to the user as written.
+A seller is paid through Stripe, set up inside Monaiq. In the Monaiq Portal the seller gives their country first, then Stripe's own screens open inside the Portal for their business details, the bank account they are paid into and an ID check. Stripe runs the payouts to their bank; Monaiq keeps its platform fee on each sale, and keeps it when the seller refunds a sale; when Monaiq refunds a payment by itself, one that arrived for an invoice already paid or cancelled or one at checkout for a license it couldn't issue, its fee goes back to the seller too. There is no separate Stripe dashboard to sign in to: updating details later happens in the same screens on the Payouts page.
+
+`profile` step 1 returns a `payouts` block: `state`, `line`, `outstanding`, `deadline` and `portalUrl`. It is Monaiq's own reading of the seller's payouts account, in seven words and never the provider's codes. Say `line` to the user as written.
 
 | `payouts.state` | What it means | canSell |
 |-----------------|---------------|---------|
-| `Not started` | No Stripe account yet. | false |
-| `Setting up` | Stripe is still taking or checking the seller's details. | false |
-| `Connected` | Payouts work. | true |
-| `Needs attention` | Payouts work, and Stripe needs something by `deadline`; `due` lists it. | true |
-| `Paused` | Stripe, or Monaiq, has paused payouts. `due` lists what Stripe wants. | false |
-| `Stopped` | Stripe, or Monaiq, has declined the account. | false |
-| `Disconnected` | The Stripe account is gone; the seller sets up payouts again. | false |
+| `Not started` | Payouts have not been set up. | false |
+| `Setting up` | The seller's details are still being given, or are being checked with nothing for the seller to do (`outstanding` is 0). | false |
+| `Connected` | The seller sells and is paid. | true |
+| `Needs attention` | The seller still sells, and something is needed by `deadline`; until it is in, payouts to their bank may wait. | true |
+| `Paused` | Selling is paused: the seller's customers keep access and their renewals wait. The provider wants something (`outstanding` above 0), is reviewing the account, or Monaiq paused it. | false |
+| `Stopped` | The payouts account was declined. Licenses already sold run to the end of what was paid for and don't renew. | false |
+| `Disconnected` | The payouts account is no longer connected; the seller sets up payouts again. Licenses already sold run to the end of what was paid for and don't renew. | false |
 
-`due` is empty when nothing is asked; `deadline` is null when Stripe set none.
+`outstanding` is how many things are asked of the seller (0 when nothing is); `deadline` is when they are due, or null when there is no date. What the things are is shown on the Payouts page, not here.
 
-**The remedy is a page, not a tool call.** For any state but `Connected`, hand the user `payouts.portalUrl` (the `payoutsUri` from `monaiq://config/endpoints`): the Payouts page says what to do and opens Stripe from the user's own signed-in session.
+**The remedy is a page, not a tool call.** For any state but `Connected`, hand the user `payouts.portalUrl`. While payouts were never connected (`Not started`, `Setting up`) it is the become-a-seller wizard (`sellerWizardUri` in `monaiq://config/endpoints`), which takes the user through the business name, the seller agreement, the plan and payouts in one place; when the plan is missing too, `platformPlan.nextStep.url` is the same page, so hand it over once. Once payouts were connected it is the Payouts page (`payoutsUri`), where an established seller answers what their payouts need. Either page opens the setup screens in the user's own signed-in session.
 
-- **Never open, start or fix Stripe yourself.** No tool starts onboarding or calls Stripe, and a Stripe login link is never handed to an agent or sent in a message.
-- **Never gate your own work on payouts.** Catalog, credentials and SDK work carry on; what changes is that the seller cannot be paid.
-- **Never quote a Stripe code.** If a user asks, the Payouts page has the detail.
+- **Never set up or fix payouts yourself.** No tool starts onboarding or acts on a payouts account, and no link into those screens is ever handed to an agent or sent in a message.
+- **Never gate your own work on payouts.** Products, offerings, publishing, credentials and SDK work carry on. Until payouts are connected, buyers cannot pay for a paid offering, and the `offering` and `implement_purchase_flow` tools say so beside each one.
+- **Never quote a provider code.** If a user asks, the Payouts page has the detail.
 
 `notices` lists what needs the seller right now. Relay each by its `line`, point at `actionPath` on the portal, and mention `due` when it has one.
 
@@ -180,15 +182,15 @@ Review both documents carefully before proceeding to accept terms.
 
 To accept terms, call the `profile` tool directly with `startStep=4` and `data={"customerTerms": true, "resellerTerms": true, "businessName": "Kestrel Studio"}`. Each flag is optional — include only the terms the user accepts. Customer terms complete the profile (`ProfileStatus = Completed`); seller terms enable selling (`ResellerStatus = Enabled`), so a seller accepts both. This action records the user's agreement and updates the profile status.
 
-Seller terms need the business name buyers will see. When the account has none, ask the builder for it and send it as `businessName` with `resellerTerms`; without it the step answers `NeedsBusinessName` and writes nothing. Only an owner can set it: a member's acceptance answers `OwnerOnly`. A `businessName` sent when the account already has one is ignored; the name changes in Settings.
+Seller terms need the business name buyers will see. When the account has none, ask the builder for it and send it as `businessName` with `resellerTerms`; without it the step answers `NeedsBusinessName` and writes nothing. Only an owner can set it: a member's acceptance answers `OwnerOnly`. While selling is by invitation, an account no owner of which was invited answers `InvitationRequired` with that sentence and writes nothing. A `businessName` sent when the account already has one is ignored; the name changes in Settings.
 
 ## Billing Rules (Step 5)
 
-A seller's rules for the customers they bill live on the account, not on offerings. Call the `profile` tool with `startStep=5` and `data` holding only the settings to change: `suspensionGraceHours` (0 to 720; how long after a failed card payment, or after an invoice's due date, a customer who has not paid keeps access before the license is suspended; 48 by default; 0 suspends at once), `remindBeforeTrialEnds` (emails the customer 2 days before a trial ends; on by default) and `remindBeforeRenewal` (emails the customer 7 days before a subscription billed monthly or less often renews; on by default). Step 5 with no `data` reads the current values. Only an owner can change them; a member's call answers `OwnerOnly`.
+A seller's rules for the customers they bill live on the account, not on offerings. Call the `profile` tool with `startStep=5` and `data` holding only the settings to change: `suspensionGraceHours` (0 to 168, the seven days a failed payment is retried; how long after a failed card payment, or after an invoice's due date, a customer who has not paid keeps access before the license is suspended; 48 by default; 0 suspends at once), `remindBeforeTrialEnds` (emails the customer 2 days before a trial ends; on by default) and `remindBeforeRenewal` (emails the customer 7 days before a subscription billed monthly or less often renews; on by default). Step 5 with no `data` reads the current values. Only an owner can change them; a member's call answers `OwnerOnly`.
 
 ## Customer Sign-in (Step 6)
 
-When the seller's app already signs its customers in with OpenID Connect (Microsoft Entra, Google, Auth0 and the like), registering that sign-in lets a customer the app signed in claim a free license or a trial with one confirm instead of an emailed code. The app sends the customer's ID token as `BuyerIdToken` on the checkout (see the `implement-purchase-flow` skill). Paid checkouts go through Stripe and do not use it.
+When the seller's app already signs its customers in with OpenID Connect (Microsoft Entra, Google, Auth0 and the like), registering that sign-in lets a customer the app signed in claim a free license or a trial with one confirm instead of an emailed code. The app sends the customer's ID token as `BuyerIdToken` on the checkout (see the `implement-purchase-flow` skill). Paid checkouts go through the hosted checkout page and do not use it.
 
 Call the `profile` tool with `startStep=6` and `data={"issuer": "...", "clientId": "..."}` to register or replace the pair, or both `null` to clear it. With no `data` it reads the current pair; step 1 shows it as `customerSignIn` too.
 
@@ -209,7 +211,7 @@ Call the `profile` tool with `startStep=6` and `data={"issuer": "...", "clientId
 - **Credential recovery**: Re-retrieve seller checkout credentials from your profile. Use purchase-flow checkout results or your application storage for purchased `EncodedCredential` values.
 - **View terms**: Review Terms of Service and Privacy Policy before accepting.
 - **Check seller status**: See current ResellerStatus and what to expect next.
-- **Check selling readiness**: Read `canSell`. When it is false, `canSellBlockedBy` names what is missing: for `plan`, hand the user `platformPlan.nextStep.url`; for `payouts`, hand them `payouts.portalUrl`.
+- **Check selling readiness**: Read `canSell`. When it is false, `canSellBlockedBy` names what is missing: for `invitation`, repeat the sentence and point the user to Monaiq support to ask for one; for `plan`, hand the user `platformPlan.nextStep.url`; for `payouts`, hand them `payouts.portalUrl`. When both are the become-a-seller wizard, hand it over once.
 - **Billing rules**: Read or change the grace before suspension and the two reminder switches with `profile` step 5.
 - **Customer sign-in**: Register, read or clear the issuer and client id behind the one-confirm free claim with `profile` step 6.
 
@@ -217,7 +219,7 @@ Call the `profile` tool with `startStep=6` and `data={"issuer": "...", "clientId
 
 <success_criteria>
 - Profile information is visible including `IssuerClientId`, `ProfileStatus`, `ResellerStatus`, `platformPlan.standing`, `payouts.state` and `canSell`
-- When `canSell` is false for `payouts`, the user is told the `payouts.line` and pointed at `payouts.portalUrl`; Stripe is never opened for them and no onboarding is said to be complete
+- When `canSell` is false for `payouts`, the user is told the `payouts.line` and pointed at `payouts.portalUrl`; payouts are never set up for them and no onboarding is said to be complete
 - When `platformPlan.standing` is `None` or `Lapsed`, the user is pointed at the `sellerWizardUri` and no purchase is attempted through MCP
 - Seller credentials are retrieved: `IssuerClientId` always, `ApiKey` for an owner (a member is told to ask an owner)
 - Terms of Service and Privacy Policy are presented for review

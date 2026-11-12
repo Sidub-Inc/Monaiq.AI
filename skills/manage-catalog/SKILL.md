@@ -80,7 +80,7 @@ Present pricing options in plain language:
 For each pricing tier (called an Offering in Monaiq), apply smart defaults:
 - Currency: `USD`
 - Interval: 1 Month for Subscription, none for Perpetual. For Trial the interval does not decide the window: `TrialDays` does (required on a Trial; the default is 7 days when created without one). A Trial carries no `BaseRate` and no `Currency`
-- Status: `Draft` (safe default — user publishes when ready)
+- Status: `Draft` (safe default — user publishes when ready). Publishing never waits on payouts: when a paid offering goes on sale while buyers cannot pay yet, the `offering` tool's hints carry a note with where payouts stand and the one link to finish them; relay it once and carry on
 
 [CONFIRM] Execute tool calls: `offering` (create for each tier) → `feature_offering` (assign features to each offering).
 

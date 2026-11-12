@@ -133,9 +133,9 @@ backend/catalog changes after completed implementation can reopen journey work a
 <credential-safety>
 `.monaiq/` is committed by default so teams and future agent sessions can understand the implementation journey. Opt-out via `.gitignore` is possible but is not the default.
 
-Credential safety is the caller's rule to keep: `monaiq_journal` runs no server-side credential leak filter. Do not journal ApiKeys, EncodedCredential strings, JWT values, Stripe keys, PEM blocks, private keys, license credentials, user secrets, `.env` contents, or secret-bearing file contents. Mention paths and decisions, never raw credential values.
+Credential safety is the caller's rule to keep: `monaiq_journal` runs no server-side credential leak filter. Do not journal ApiKeys, EncodedCredential strings, JWT values, payment provider keys, PEM blocks, private keys, license credentials, user secrets, `.env` contents, or secret-bearing file contents. Mention paths and decisions, never raw credential values.
 
-Do not place raw ApiKeys, EncodedCredential values, JWTs, Stripe keys, or secret-bearing file contents in prompts, journals, checkpoint result payloads, plugin output, or generated guidance.
+Do not place raw ApiKeys, EncodedCredential values, JWTs, payment provider keys, or secret-bearing file contents in prompts, journals, checkpoint result payloads, plugin output, or generated guidance.
 </credential-safety>
 
 <file-operation-contract>

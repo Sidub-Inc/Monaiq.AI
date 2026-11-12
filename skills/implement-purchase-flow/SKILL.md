@@ -1,10 +1,10 @@
 ---
 name: implement-purchase-flow
-description: "Use when: adding an in-app license purchase flow, buy button, Stripe checkout session, checkout result handling, credential persistence, or post-purchase SDK refresh."
+description: "Use when: adding an in-app license purchase flow, buy button, taking payments (Stripe) through Monaiq's hosted checkout page, checkout result handling, credential persistence, or post-purchase SDK refresh."
 agent: monaiq
 auto-invoke:
   - "User wants to add in-app purchases or checkout to their application"
-  - "User wants to integrate Stripe checkout for license purchasing"
+  - "User wants to take payments, or asks to integrate Stripe, for license purchasing"
   - "User asks how to embed a buy button or purchase flow"
 tags: [sdk, checkout, purchase, licensing, stripe]
 category: integration
@@ -51,27 +51,29 @@ For `CHECKPOINT-CHECKOUT-ARCHITECTURE`, `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, `C
 <workflow>
 1. Run `_shared/workflows/startup.md` for `implement-purchase-flow`.
 2. **Response Pattern.** Follow `_shared/protocols.md` § Response Pattern. The gate this skill owns is **purchase flow architecture + credential persistence**. Evidence sources, in priority order: existing routes / server-API boundaries / auth-session shape / purchase UI entry points in `targetProject`, SDK integration state, published offerings, credential handling policy from journal, route packet, `monaiq://sdk/{stack}/setup`, `monaiq://config/endpoints`, `monaiq://docs/anti-patterns/{platform}`. Per-stack code shapes live in `monaiq://sdk/{stack}/setup` and the `implement_purchase_flow` server response — do not embed framework-specific code in this skill source.
-3. Read the master journey checklist from `.monaiq/STATE.md`; this skill owns only the purchase flow when applicable gate. Establish prerequisites: SDK integrated, active session, profile credentials available server-side, published offerings available, and resources fetched. Missing SDK routes to `implement-licensing`; missing offerings route to `manage-catalog`.
+3. Read the master journey checklist from `.monaiq/STATE.md`; this skill owns only the purchase flow when applicable gate. Establish prerequisites: SDK integrated, active session, profile credentials available server-side, published offerings available, and resources fetched. Missing SDK routes to `implement-licensing`; missing offerings route to `manage-catalog`. Payouts are not a prerequisite: buyers can pay for a paid offering once the seller's payouts are connected, and `implement_purchase_flow` lists where they stand on each paid offering as `payouts.note`, which you relay once with its link and then carry on.
 3. Detect existing checkout implementation and purchase UI entry points before proposing new routes/components.
 4. Use evidence before asking a new question. Infer checkout architecture from existing routes, server/API boundaries, auth/session shape, purchase UI entry points, SDK state, offering facts, credential handling policy, and journal decisions. You must confirm inferred decisions in the next existing checkpoint, especially `CHECKPOINT-CHECKOUT-ARCHITECTURE`, with labeled assumptions for checkout architecture, feature path, credential handling, and next steps. Do not add a new checkpoint name solely for evidence inference.
 5. Present the plan using `_shared/response-patterns.md` "Evidence Backing" plus selected offerings, architecture, credential persistence policy, and validation plan.
 6. Call `implement_purchase_flow` with `startStep=all` when platform, offering availability, required resources, credential handling, and checkout architecture are known; use numbered steps only when step-by-step review improves safety.
 7. Stop at `CHECKPOINT-CHECKOUT-ARCHITECTURE`, `CHECKPOINT-PRE-BUSINESS-LOGIC-EDIT`, `CHECKPOINT-PRE-CREDENTIAL-PERSISTENCE`, or `CHECKPOINT-PRE-APIKEY-EXPOSURE-RISK` before checkout routes, success handlers, provider behavior, post-purchase refresh, credential persistence, or frontend/API-key exposure decisions. Do not journal ApiKey or EncodedCredential values.
 8. Apply checkout, success, persistence, and UI changes using the authoritative tool/resource guidance only. If guidance is missing, contradictory, or insufficient, stop and record a plugin guidance defect.
-9. Validate checkout session creation, result retrieval, credential storage, state refresh, and feature checks. On checkout/build/validation failure, call `monaiq_journal record_validation_failure` before remediation.
+9. Validate checkout creation, result retrieval, credential storage, state refresh, and feature checks. On checkout/build/validation failure, call `monaiq_journal record_validation_failure` before remediation.
 10. Coalesce changed paths, validation proof, purchase-flow checklist progress, and `checkoutImpl` handoff through `_shared/workflows/completion.md`. Call `update_checklist_progress` for purchase flow when applicable only after source skill, relevant MCP tool, canonical resources, and checkpoint/journal evidence prove the gate is complete before marking the checklist gate complete. The purchase-flow checklist item cannot be marked complete without SDK/tool evidence: implement_purchase_flow evidence, canonical resource evidence, and checkpoint/journal evidence must all be present. If any evidence is missing, record a blocked checklist gate through the plugin guidance defect path. Save `CHECKPOINT-SKILL-COMPLETE` with `proofOfDone` only when useful, apply returned operations using the **File Operation Application Protocol** in `_shared/protocols.md`, call `skill_completed` once, and hand off persisted `checkoutImpl` plus `validationProof`.
 </workflow>
 
 <experience-contract>
 ## Purchase Experience Contract
 
+You do not integrate a payment provider. Monaiq takes the payment on its hosted checkout page and runs billing, so the app never holds card details, payment keys or webhooks. If the user asks to "add Stripe", this is the skill: the checkout below is how the seller gets paid.
+
 Design purchase UI around the host app's job, not a universal Monaiq screen. A full license page or purchase page is appropriate when the user is comparing offerings, managing billing, or intentionally reviewing account state; a compact feature-level upsell is appropriate beside a locked action when the user already understands the task and needs the shortest trustworthy upgrade route. In both cases, keep the experience host-native, calm, task-focused, and persuasive without turning the application into a marketing page.
 
-Every purchase surface must explain the current license state, the target offering, included features, limits, price, and fit in business-readable language. Offer comparison surfaces should help the user choose confidently by showing offering differences, included features, quota or usage limits, price, and who each offering is for without leading with technical licensing vocabulary. Upgrade copy must explain the current-to-target upgrade path and what value is gained. A customer holds one plan of a product at a time, so a second plan is refused at checkout: change plan is the buyer's, from their Monaiq license page. Your app sends the buyer there and sees the new `OfferingId` on the same license and the same seats. Free plans and trials are once per account, a paid plan replaces a held trial, and an add-on (an offering with `AddOn` true) is bought alongside the plan.
+Every purchase surface must explain the current license state, the target offering, included features, limits, price, and fit in business-readable language. Offer comparison surfaces should help the user choose confidently by showing offering differences, included features, quota or usage limits, price, and who each offering is for without leading with technical licensing vocabulary. Upgrade copy must explain the current-to-target upgrade path and what value is gained. A customer holds one plan of a product at a time, so a second plan is refused at checkout: change plan is the buyer's, from their Monaiq license page. Your app sends the buyer there and sees the new `OfferingId` on the same license and the same seats. Say what a change costs the way Monaiq bills it: an upgrade or a seat add charges the difference for the rest of the period now; a downgrade or a seat removal takes effect at period end; a change of billing period (monthly to yearly) starts the new period now and credits the unused time. Free plans and trials are once per account, a paid plan replaces a held trial, and an add-on (an offering with `AddOn` true) is bought alongside the plan.
 
-Before direct checkout, require customer identity and offering context. On the buyer-bearer path the buyer's own sign-in is the identity, and no email is collected. On the key path, also require a reliable email: the customer email is the purchase identity used for Stripe pre-fill, license delivery, and payment follow-up; if the app cannot provide a reliable email, pause for a host-native question or route to identity/profile work before checkout. Direct checkout from a compact upsell is allowed only when the customer, target offering, success path, and recovery path are known, plus a reliable email on the key path.
+Before direct checkout, require customer identity and offering context. On the buyer-bearer path the buyer's own sign-in is the identity, and no email is collected. On the key path, also require a reliable email: the customer email is the identity the license is delivered to and the payment followed up with; if the app cannot provide a reliable email, pause for a host-native question or route to identity/profile work before checkout. Direct checkout from a compact upsell is allowed only when the customer, target offering, success path, and recovery path are known, plus a reliable email on the key path.
 
-After checkout completes, refresh license state, read the current entitlement snapshot, show newly unlocked features or the current entitlement state, and provide the next useful action. Cover loading, available, locked, near-limit, over-limit, expired, success, misconfigured, and recovery states so the user never lands in a vague purchased-but-still-blocked experience.
+After checkout completes, refresh license state, read the current entitlement snapshot, show newly unlocked features or the current entitlement state, and provide the next useful action. Cover loading, available, locked, near-limit, over-limit, expired, success, misconfigured, and recovery states so the user never lands in a vague purchased-but-still-blocked experience. A checkout the server refuses is a state too: show the buyer the server's Message, keep the buy button, and never show a success the server did not report.
 
 Placement is a product decision. Prefer account/settings/billing pages for broad license management, feature-adjacent surfaces for contextual locked-feature upsells, and admin/tenant surfaces for buyer-managed purchases, but verify against the host app's navigation, component system, accessibility, responsive behavior, and existing visual language. Do not impose a Monaiq visual standard.
 
@@ -102,13 +104,13 @@ Determine your application's checkout architecture and identify the offerings to
 **CorrelationId** is a tracking identifier (called `CorrelationId`) that links the purchase back to the buyer. It is an opaque string your application provides that round-trips through the entire checkout flow:
 
 1. Your app sends `CorrelationId` with the checkout request.
-2. Paid: Stripe Checkout completes, the webhook fires, the license and its seat(s) are created. Free: the buyer-bearer path mints the license at once; the key path first sends the buyer to the claim link.
+2. Paid: the buyer pays on the hosted checkout page, and the license and its seat(s) are created once the payment settles. Free: the buyer-bearer path mints the license at once; the key path first sends the buyer to the claim link.
 3. The checkout-result call returns `CorrelationId`, the license ID and its seat IDs — plus the license code when one seat was bought.
 4. Your app matches `CorrelationId` back to the user and stores the credential.
 
 Use a stable, unique identifier — user ID, tenant ID, or a composite key.
 
-**Browse offerings** using the `offering` tool to see what is available for purchase. Free, trial, and zero-dollar offerings are fully supported — the API handles them without a Stripe redirect.
+**Browse offerings** using the `offering` tool to see what is available for purchase. Free, trial, and zero-dollar offerings are fully supported — the API handles them with no payment page.
 
 For the authoritative offering entity shape and checkout-request field names:
 
@@ -118,7 +120,9 @@ Fetch `monaiq://platforms/api-surface/{platform}` via the MCP `resources/read` o
 
 ## Step 2: Backend Integration
 
-Create a checkout by calling the SDK's purchase client (buyer-bearer path) or checkout service (key path). The request carries the offering ID, the seller identifier (`IssuerClientId`), the correlation ID, an optional seat quantity (1 to 100), return URLs and — on the key path only — the customer email. The response carries a redirect URL for a paid offering. For a free / trial offering there is none: on the buyer-bearer path it auto-completes; on the key path it carries a `ClaimUrl` (below).
+Create a checkout by calling the SDK's purchase client (buyer-bearer path) or checkout service (key path). The request carries the offering ID, the seller identifier (`IssuerClientId`), the correlation ID, an optional seat quantity (1 to 100), return URLs and — on the key path only — the customer email. The response carries the checkout's `CheckoutId`, which the result is read by, and for a paid offering `CheckoutUrl`, the hosted checkout page the buyer pays on. For a free / trial offering there is no page: on the buyer-bearer path it auto-completes; on the key path it carries a `ClaimUrl` (below).
+
+**Coming back to your app.** An app the buyer runs (buyer-bearer path) opens `CheckoutUrl` in the system browser and polls the result with the `CheckoutId` it holds; it never needs the buyer to come back. A web app on the key path sends the buyer to `CheckoutUrl`, and after paying the hosted checkout page sends them to your `SuccessUrl` with `request_id` added: the `RequestId` of the checkout request. So when you create the checkout, save the `CheckoutId` under its `RequestId` on your server (a database row or the user's server-side session, never browser storage). Your success page reads `request_id`, looks up the `CheckoutId` and reads the result with it. Give the free paths the same address: navigate to the success page with `?request_id=…` yourself, and put it in `ReturnUrl`.
 
 For the platform-specific checkout-service type, request/response shapes, and invocation pattern:
 
@@ -141,10 +145,10 @@ Fetch `monaiq://config/endpoints` via the MCP `resources/read` operation or `fet
 does, nothing has been provisioned yet — the address names the buyer but does not prove them.
 Redirect the buyer to the link now, in the same browser; never make them wait for an email (the
 same link is emailed only as a fallback for a buyer who closed the tab). A buyer who presses your
-button again inside the seven days gets the same session, a new `ClaimUrl` and the email again;
+button again inside the seven days gets the same checkout, a new `ClaimUrl` and the email again;
 every link issued for the offer keeps working until it is accepted, so a retry never kills the
-one already in their mailbox. Set `ReturnUrl`: they
-confirm, prove the address with a one-time code, and land on `ReturnUrl?session_id=…`, where one
+one already in their mailbox. Set `ReturnUrl` to your success page with
+`?request_id=…` in it: they confirm, prove the address with a one-time code, and land there, where one
 result read is enough. Without a `ReturnUrl`, keep polling: the result reads pending until the
 buyer confirms, then completed with the credential, or failed with `Claim expired.` once the
 seven-day window lapses. Do not add an "awaiting claim" status of your own;
@@ -161,7 +165,7 @@ access token or a token minted for a different app.
 
 ## Step 3: Success Handling
 
-After the user completes Stripe Checkout, retrieve the result using the session ID. The result exposes the checkout status, the `CorrelationId` you originally supplied, the license ID, the purchased seat IDs, and the encoded credential string.
+After the buyer has paid on the hosted checkout page, retrieve the result by the `CheckoutId` (on the key path, the one saved under the `request_id` your success page received). The result exposes the checkout status, the `CorrelationId` you originally supplied, the license ID, the purchased seat IDs, and the encoded credential string.
 
 Persist the credential against the user identified by `CorrelationId` — this credential is what the licensing SDK uses at runtime.
 
@@ -183,8 +187,8 @@ sees the new entitlements without a full reload:
 - **JavaScript SDK (React and Node):** `await client.refresh({ ...client.getConfig(), encodedCredential }); const state = await client.getState();`
 - **.NET:** `var state = await provider.GetState(serviceReference, context);`
 
-Wire these two calls into whatever success-callback shape your app already uses — the Stripe webhook
-handler, a redux thunk, an API-route response, a Blazor event handler. The SDK exposes no
+Wire these two calls into whatever success-callback shape your app already uses — the end of the
+result poll, a redux thunk, an API-route response, a Blazor event handler. The SDK exposes no
 `onPurchaseComplete` hook; this is the canonical two-line idiom.
 
 For the platform-specific signatures:
@@ -217,8 +221,8 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 
 ## Verification
 
-1. Create a checkout session with a test offering.
-2. Complete the Stripe Checkout flow (or verify a free / trial offering auto-completes).
+1. Create a checkout with a test offering.
+2. Pay on the hosted checkout page with a test card (or verify a free / trial offering auto-completes), and confirm a web app's success page finds the checkout by `request_id`.
 3. Retrieve the checkout result and confirm the encoded credential is returned.
 4. Store the credential and verify the runtime authorization call returns a valid result.
 5. Verify feature checks work with the new license.
@@ -243,7 +247,7 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 - `monaiq://sdk/dotnet/setup` — .NET SDK wiring narrative.
 - `monaiq://sdk/react/setup` — JavaScript SDK wiring narrative for React.
 - `monaiq://config/endpoints` — Checkout/licensing endpoint base URLs.
-- `monaiq://domain/model` — Offering, license, and checkout-session entity shapes.
+- `monaiq://domain/model` — Offering, license, and checkout entity shapes.
 
 </reference>
 
@@ -252,17 +256,19 @@ Fetch `monaiq://platforms/pitfalls/{platform}` via the MCP `resources/read` oper
 
 | Failure Point | Symptom | Recovery Action |
 |--------------|---------|----------------|
-| Checkout session creation fails | Session-create call returns error | Verify `IssuerClientId` (and, on the key path, the `ApiKey` — an owner re-fetches it from `profile`). Confirm the offering's Status is Public or Private and the seller holds a Monaiq plan (`profile` step 1 `platformPlan`). |
-| Stripe redirect fails | User sees Stripe error page | Verify success and cancel URLs use HTTPS and include the session-ID placeholder expected by the checkout service (see `monaiq://platforms/api-surface/{platform}`). Confirm the offering's `BaseRate` and `Currency` are valid. |
-| Checkout-result retrieval returns no credential | Result poll returns an empty encoded-credential value | The checkout may not be complete yet — retry after a short delay; a key-path claim stays pending until the buyer accepts. A completed purchase of more than one seat carries no credential by design — issue one per seat from its seat IDs. If persistent, verify the session ID is correct. |
-| Credential storage fails | License purchased but credential lost | Re-call the checkout-result retrieval with the same session ID; results are persistent server-side. |
+| Checkout creation fails | Checkout-create call returns error | Verify `IssuerClientId` (and, on the key path, the `ApiKey` — an owner re-fetches it from `profile`). Confirm the offering's Status is Public or Private and the seller holds a Monaiq plan (`profile` step 1 `platformPlan`). A refused checkout (`CheckoutFailed`, `SellerPaymentsUnavailable`, `PayoutsNeedAttention`, `PayoutsPaused`, `PayoutsStopped`, `PayoutsDisconnected`, `PaymentsUnavailable`) carries a Message written for the buyer: the app shows it and never the success page. A payouts code, or a `CheckoutFailed` saying the seller has not set up payments, is the seller's to answer at `profile` step 1 `payouts.portalUrl`. |
+| The return to the app fails | The buyer paid but the success page cannot find the checkout | Verify success and cancel URLs are absolute and use HTTPS, and that the success page reads `request_id` and finds the `CheckoutId` saved under it. Confirm the offering's `BaseRate` and `Currency` are valid. |
+| Checkout-result retrieval returns no credential | Result poll returns an empty encoded-credential value | The checkout may not be complete yet — retry after a short delay; a key-path claim stays pending until the buyer accepts. A completed purchase of more than one seat carries no credential by design — issue one per seat from its seat IDs. If persistent, verify the checkout ID is correct. |
+| Credential storage fails | License purchased but credential lost | Re-call the checkout-result retrieval with the same checkout ID; results are persistent server-side. |
 | Context provider wiring fails | Feature checks return null after purchase | Verify the custom context provider returns the stored credential. Check DI / composition-root registration against `monaiq://sdk/{stack}/setup`. |
 
 A checkout create is idempotent by its request ID: resending the same request ID replays the existing checkout, while a new request ID starts a new one. Completed purchases are recorded server-side and can be recovered.
 </error-recovery>
 
 <success_criteria>
-- Checkout creation works — returns a Stripe URL (paid), nothing to redirect to on the buyer-bearer free path, or a claim URL on the key-path free path.
+- Checkout creation works — returns the hosted checkout page's URL (paid), nothing to redirect to on the buyer-bearer free path, or a claim URL on the key-path free path.
+- A web app's success page finds its checkout by `request_id`.
+- A refused checkout shows the buyer the server's Message and never the success page.
 - Checkout-result retrieval returns the correlation ID, license ID and seat IDs after the purchase completes, and the encoded credential for a one-seat purchase.
 - Credential is stored and the runtime authorization call returns a valid result using the purchased license.
 - Feature checks work at runtime with the purchased credential.
